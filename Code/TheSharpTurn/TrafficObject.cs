@@ -3,12 +3,6 @@ using System.Drawing;
 
 namespace TheSharpTurn
 {
-    public enum TravelDirection
-    {
-        Left,
-        Right
-    }
-
     [Serializable]
     public abstract class TrafficObject
     {
