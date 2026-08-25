@@ -1,0 +1,42 @@
+{
+  "version": 2,
+  "dgSpecHash": "+5QW9t2BBJ4=",
+  "success": false,
+  "projectFilePath": "/home/skelepap/Mikey Folder/Studying/תואר ראשון - מדעי המחשב/שנה א/סמסטר קיץ/OOP - Object Oriented Programming/פרוייקט סופי/Michael's Project/Lecturer Instructions/example projects from lecture/0 Site - console prj/Site/Site.csproj",
+  "expectedPackageFiles": [],
+  "logs": [
+    {
+      "code": "NU1301",
+      "level": "Error",
+      "message": "Unable to load the service index for source https://api.nuget.org/v3/index.json.\n  The SSL connection could not be established, see inner exception.\n  Unable to read data from the transport connection: Connection reset by peer.\n  Connection reset by peer",
+      "projectPath": "/home/skelepap/Mikey Folder/Studying/תואר ראשון - מדעי המחשב/שנה א/סמסטר קיץ/OOP - Object Oriented Programming/פרוייקט סופי/Michael's Project/Lecturer Instructions/example projects from lecture/0 Site - console prj/Site/Site.csproj",
+      "filePath": "/home/skelepap/Mikey Folder/Studying/תואר ראשון - מדעי המחשב/שנה א/סמסטר קיץ/OOP - Object Oriented Programming/פרוייקט סופי/Michael's Project/Lecturer Instructions/example projects from lecture/0 Site - console prj/Site/Site.csproj",
+      "targetGraphs": []
+    },
+    {
+      "code": "NU1301",
+      "level": "Error",
+      "message": "Unable to load the service index for source https://api.nuget.org/v3/index.json.\n  The SSL connection could not be established, see inner exception.\n  Unable to read data from the transport connection: Connection reset by peer.\n  Connection reset by peer",
+      "projectPath": "/home/skelepap/Mikey Folder/Studying/תואר ראשון - מדעי המחשב/שנה א/סמסטר קיץ/OOP - Object Oriented Programming/פרוייקט סופי/Michael's Project/Lecturer Instructions/example projects from lecture/0 Site - console prj/Site/Site.csproj",
+      "filePath": "/home/skelepap/Mikey Folder/Studying/תואר ראשון - מדעי המחשב/שנה א/סמסטר קיץ/OOP - Object Oriented Programming/פרוייקט סופי/Michael's Project/Lecturer Instructions/example projects from lecture/0 Site - console prj/Site/Site.csproj",
+      "targetGraphs": []
+    },
+    {
+      "code": "NU1301",
+      "level": "Error",
+      "message": "Unable to load the service index for source https://api.nuget.org/v3/index.json.\n  The SSL connection could not be established, see inner exception.\n  Unable to read data from the transport connection: Connection reset by peer.\n  Connection reset by peer",
+      "projectPath": "/home/skelepap/Mikey Folder/Studying/תואר ראשון - מדעי המחשב/שנה א/סמסטר קיץ/OOP - Object Oriented Programming/פרוייקט סופי/Michael's Project/Lecturer Instructions/example projects from lecture/0 Site - console prj/Site/Site.csproj",
+      "filePath": "/home/skelepap/Mikey Folder/Studying/תואר ראשון - מדעי המחשב/שנה א/סמסטר קיץ/OOP - Object Oriented Programming/פרוייקט סופי/Michael's Project/Lecturer Instructions/example projects from lecture/0 Site - console prj/Site/Site.csproj",
+      "targetGraphs": []
+    },
+    {
+      "code": "NU1900",
+      "level": "Warning",
+      "message": "Error occurred while getting package vulnerability data: Unable to load the service index for source https://api.nuget.org/v3/index.json.",
+      "projectPath": "/home/skelepap/Mikey Folder/Studying/תואר ראשון - מדעי המחשב/שנה א/סמסטר קיץ/OOP - Object Oriented Programming/פרוייקט סופי/Michael's Project/Lecturer Instructions/example projects from lecture/0 Site - console prj/Site/Site.csproj",
+      "warningLevel": 1,
+      "filePath": "/home/skelepap/Mikey Folder/Studying/תואר ראשון - מדעי המחשב/שנה א/סמסטר קיץ/OOP - Object Oriented Programming/פרוייקט סופי/Michael's Project/Lecturer Instructions/example projects from lecture/0 Site - console prj/Site/Site.csproj",
+      "targetGraphs": []
+    }
+  ]
+}
