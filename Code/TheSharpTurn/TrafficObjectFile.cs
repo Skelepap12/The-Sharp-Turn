@@ -6,6 +6,9 @@ namespace TheSharpTurn
 {
     public static class TrafficObjectFile
     {
+        public const string FileExtension = "tst";
+        public const string FileFilter = "The Sharp Turn files (*.tst)|*.tst|All files (*.*)|*.*";
+
         public static void Save(string fileName, TrafficObjectList trafficObjects)
         {
             IFormatter formatter = new BinaryFormatter();
