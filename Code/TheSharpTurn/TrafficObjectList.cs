@@ -70,8 +70,8 @@ namespace TheSharpTurn
 
         public void DrawAll(Graphics g)
         {
-            for (int i = 0; i < trafficObjects.Count; i++)
-                ((TrafficObject)trafficObjects.GetByIndex(i)).Draw(g);
+            for (int i = 0; i < Count; i++)
+                this[i].Draw(g);
         }
 
         public bool IsAreaFree(Rectangle bounds)
@@ -83,9 +83,9 @@ namespace TheSharpTurn
         {
             TrafficObject current;
 
-            for (int i = 0; i < trafficObjects.Count; i++)
+            for (int i = 0; i < Count; i++)
             {
-                current = (TrafficObject)trafficObjects.GetByIndex(i);
+                current = this[i];
 
                 if (current != ignoredObject && current.Bounds.IntersectsWith(bounds))
                     return false;
@@ -97,30 +97,33 @@ namespace TheSharpTurn
         public int CountObjectsInLane(int lane)
         {
             int count = 0;
-            TrafficObject current;
 
-            for (int i = 0; i < trafficObjects.Count; i++)
+            for (int i = 0; i < Count; i++)
             {
-                current = (TrafficObject)trafficObjects.GetByIndex(i);
-
-                if (current.Lane == lane)
+                if (this[i].Lane == lane)
                     count++;
             }
 
             return count;
         }
 
+        public int FindObjectIndexAt(int xP, int yP)
+        {
+            for (int i = Count - 1; i >= 0; i--)
+            {
+                if (this[i].Contains(xP, yP))
+                    return i;
+            }
+
+            return -1;
+        }
+
         public TrafficObject FindObjectAt(int xP, int yP)
         {
-            TrafficObject current;
+            int index = FindObjectIndexAt(xP, yP);
 
-            for (int i = trafficObjects.Count - 1; i >= 0; i--)
-            {
-                current = (TrafficObject)trafficObjects.GetByIndex(i);
-
-                if (current.Contains(xP, yP))
-                    return current;
-            }
+            if (index >= 0)
+                return this[index];
 
             return (TrafficObject)null;
         }
