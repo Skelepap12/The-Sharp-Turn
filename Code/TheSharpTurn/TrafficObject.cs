@@ -89,7 +89,10 @@ namespace TheSharpTurn
             }
             set
             {
-                desiredSpeed = value;
+                if (value < 0)
+                    desiredSpeed = 0;
+                else
+                    desiredSpeed = value;
             }
         }
 
@@ -101,7 +104,10 @@ namespace TheSharpTurn
             }
             set
             {
-                actualSpeed = value;
+                if (value < 0)
+                    actualSpeed = 0;
+                else
+                    actualSpeed = value;
             }
         }
 
@@ -113,7 +119,10 @@ namespace TheSharpTurn
             }
             set
             {
-                width = value;
+                if (value <= 0)
+                    width = 1;
+                else
+                    width = value;
             }
         }
 
@@ -125,7 +134,10 @@ namespace TheSharpTurn
             }
             set
             {
-                height = value;
+                if (value <= 0)
+                    height = 1;
+                else
+                    height = value;
             }
         }
 
