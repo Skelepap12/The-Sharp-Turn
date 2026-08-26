@@ -30,6 +30,24 @@ namespace TheSharpTurn
             set
             {
                 model = value;
+
+                switch (model)
+                {
+                    case CarModel.Hatchback:
+                        Width = 34;
+                        Height = 18;
+                        break;
+
+                    case CarModel.SportsCar:
+                        Width = 38;
+                        Height = 16;
+                        break;
+
+                    case CarModel.Sedan:
+                        Width = 42;
+                        Height = 18;
+                        break;
+                }
             }
         }
 
