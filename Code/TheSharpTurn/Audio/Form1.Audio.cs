@@ -41,11 +41,20 @@ namespace TheSharpTurn
             }
 
             if (manualObject is Bicycle)
-                PlayActionSound("bike_horn.wav");
+            {
+                PlayActionSound("bike_horn.wav", 45);
+                labelStatus.Text = "Bicycle horn.";
+            }
             else if (manualObject is Pedestrian)
-                PlayActionSound("pedestrian_shout.wav");
+            {
+                PlayActionSound("pedestrian_shout.wav", 15);
+                labelStatus.Text = "Pedestrian shout.";
+            }
             else if (manualObject is RoadUser)
-                PlayActionSound("car_horn.wav");
+            {
+                PlayActionSound("car_horn.wav", 55);
+                labelStatus.Text = "Horn sounded.";
+            }
         }
 
         private void AudioTimer_Tick(object sender, EventArgs e)
@@ -56,7 +65,7 @@ namespace TheSharpTurn
                 return;
             }
 
-            if (manualObject == null || manualObject.ActualSpeed == 0)
+            if (manualObject == null)
             {
                 StopManualSound();
                 return;
@@ -97,25 +106,133 @@ namespace TheSharpTurn
                 if (emergency.SirenOn)
                     return "siren.wav";
 
-                return "emergency_engine_loop.wav";
+                return GetEmergencyEngineSoundFile(emergency);
             }
 
             if (obj is Car)
-                return "car_engine_loop.wav";
+                return GetCarSoundFile(obj.ActualSpeed);
 
             if (obj is Bus)
-                return "bus_engine_loop.wav";
+                return GetBusSoundFile(obj.ActualSpeed);
 
             if (obj is Motorcycle)
-                return "motorcycle_engine_loop.wav";
+                return GetMotorcycleSoundFile(obj.ActualSpeed);
 
             if (obj is Bicycle)
-                return "bike_loop.wav";
+                return GetBicycleSoundFile(obj.ActualSpeed);
 
             if (obj is Pedestrian)
-                return "footsteps.wav";
+                return GetPedestrianSoundFile(obj.ActualSpeed);
 
             return "";
+        }
+
+        private string GetCarSoundFile(int speed)
+        {
+            switch (speed)
+            {
+                case 0:
+                    return "car_idle.wav";
+                case 1:
+                case 2:
+                    return "car_low.wav";
+                case 3:
+                case 4:
+                    return "car_mid.wav";
+                case 5:
+                    return "car_high.wav";
+                default:
+                    return "car_high.wav";
+            }
+        }
+
+        private string GetMotorcycleSoundFile(int speed)
+        {
+            switch (speed)
+            {
+                case 0:
+                    return "motorcycle_idle.wav";
+                case 1:
+                case 2:
+                    return "motorcycle_low.wav";
+                case 3:
+                case 4:
+                    return "motorcycle_mid.wav";
+                case 5:
+                    return "motorcycle_high.wav";
+                default:
+                    return "motorcycle_high.wav";
+            }
+        }
+
+        private string GetBusSoundFile(int speed)
+        {
+            switch (speed)
+            {
+                case 0:
+                    return "bus_idle.wav";
+                case 1:
+                case 2:
+                    return "bus_low.wav";
+                case 3:
+                case 4:
+                    return "bus_mid.wav";
+                case 5:
+                    return "bus_high.wav";
+                default:
+                    return "bus_high.wav";
+            }
+        }
+
+        private string GetEmergencyEngineSoundFile(EmergencyVehicle emergency)
+        {
+            switch (emergency.Model)
+            {
+                case EmergencyVehicleModel.PoliceCar:
+                    return GetCarSoundFile(emergency.ActualSpeed);
+
+                case EmergencyVehicleModel.FireTruck:
+                    if (emergency.ActualSpeed == 0)
+                        return "firetruck_idle.wav";
+                    return GetBusSoundFile(emergency.ActualSpeed);
+
+                case EmergencyVehicleModel.Ambulance:
+                    return GetBusSoundFile(emergency.ActualSpeed);
+            }
+
+            return GetBusSoundFile(emergency.ActualSpeed);
+        }
+
+        private string GetBicycleSoundFile(int speed)
+        {
+            switch (speed)
+            {
+                case 0:
+                    return "";
+                case 1:
+                    return "bike_low.wav";
+                case 2:
+                    return "bike_mid.wav";
+                case 3:
+                    return "bike_high.wav";
+                default:
+                    return "bike_high.wav";
+            }
+        }
+
+        private string GetPedestrianSoundFile(int speed)
+        {
+            switch (speed)
+            {
+                case 0:
+                    return "";
+                case 1:
+                    return "walk_normal.wav";
+                case 2:
+                    return "walk_fast.wav";
+                default:
+                    return "walk_fast.wav";
+            }
         }
 
         private void PlayLoopingSound(string fileName)
@@ -123,7 +240,10 @@ namespace TheSharpTurn
             string filePath = GetAudioPath(fileName);
 
             if (filePath == "")
+            {
+                StopManualSound();
                 return;
+            }
 
             try
             {
@@ -135,11 +255,12 @@ namespace TheSharpTurn
             }
             catch
             {
-                currentMovementSound = "";
+                manualSoundPlayer.Stop();
+                currentMovementSound = fileName;
             }
         }
 
-        private void PlayActionSound(string fileName)
+        private void PlayActionSound(string fileName, int pauseTicks)
         {
             string filePath = GetAudioPath(fileName);
 
@@ -153,7 +274,7 @@ namespace TheSharpTurn
                 manualSoundPlayer.Load();
                 manualSoundPlayer.Play();
                 currentMovementSound = "";
-                actionSoundPauseTicks = 15;
+                actionSoundPauseTicks = pauseTicks;
             }
             catch
             {
@@ -166,6 +287,7 @@ namespace TheSharpTurn
         {
             manualSoundPlayer.Stop();
             currentMovementSound = "";
+            actionSoundPauseTicks = 0;
         }
 
         private string GetAudioPath(string fileName)
