@@ -10,6 +10,7 @@ namespace TheSharpTurn
         TrafficObjectList trafficObjects = new TrafficObjectList();
         int curIndex = -1;
         bool placementMode = false;
+        TrafficObject manualObject = (TrafficObject)null;
         Timer simulationTimer = new Timer();
 
         const int RoadLaneHeight = 50;
@@ -31,11 +32,12 @@ namespace TheSharpTurn
 
             comboType.SelectedIndex = 0;
             UpdateModelChoices();
-            UpdateSelectedInfo();
 
-            // Model changes after creation are no longer part of the project.
-            // Manual Mode will be the official Modify mechanism in Phase 7.
             buttonModify.Enabled = false;
+            buttonManual.Click += new EventHandler(buttonManual_Click);
+            this.KeyDown += new KeyEventHandler(Form1_KeyDown);
+
+            UpdateSelectedInfo();
 
             simulationTimer.Interval = 40;
             simulationTimer.Tick += new EventHandler(simulationTimer_Tick);
@@ -121,6 +123,9 @@ namespace TheSharpTurn
 
         private void buttonAdd_Click(object sender, EventArgs e)
         {
+            if (manualObject != null)
+                EndManualMode("Manual Mode ended.");
+
             curIndex = -1;
             placementMode = true;
             UpdateSelectedInfo();
@@ -133,6 +138,12 @@ namespace TheSharpTurn
 
         private void pictureBoxMap_MouseDown(object sender, MouseEventArgs e)
         {
+            if (manualObject != null)
+            {
+                EndManualMode("Manual Mode ended by map click.");
+                return;
+            }
+
             if (placementMode)
             {
                 TryPlaceObject(e.X, e.Y);
@@ -303,13 +314,24 @@ namespace TheSharpTurn
             {
                 TrafficObject obj = trafficObjects[i];
 
-                if (obj is RoadUser)
+                if (obj == manualObject)
+                    MoveAtBestSpeed(obj);
+                else if (obj is EmergencyVehicle)
+                    UpdateEmergencyVehicle((EmergencyVehicle)obj);
+                else if (obj is RoadUser)
                     UpdateRoadUser((RoadUser)obj);
+                else if (obj is Bicycle)
+                    UpdateBicycle((Bicycle)obj);
+                else if (obj is Pedestrian)
+                    UpdatePedestrian((Pedestrian)obj);
                 else
                     MoveAtBestSpeed(obj);
 
                 if (IsOutsideMap(obj))
                 {
+                    if (obj == manualObject)
+                        EndManualMode("Manual Mode ended because the object left the map.");
+
                     trafficObjects.Remove(i);
 
                     if (curIndex == i)
@@ -340,6 +362,27 @@ namespace TheSharpTurn
             MoveAtBestSpeed(roadUser);
         }
 
+        private void UpdateEmergencyVehicle(EmergencyVehicle emergency)
+        {
+            if (!emergency.SirenOn)
+            {
+                UpdateRoadUser(emergency);
+                return;
+            }
+
+            RoadUser blocker = FindRoadUserAhead(emergency);
+
+            if (blocker != null)
+            {
+                int gap = GetForwardGap(emergency, blocker);
+
+                if (gap <= emergency.DesiredSpeed + 14 && blocker != manualObject)
+                    TryAutomaticRoadLaneChange(blocker);
+            }
+
+            MoveAtBestSpeed(emergency);
+        }
+
         private RoadUser FindRoadUserAhead(RoadUser roadUser)
         {
             RoadUser nearest = (RoadUser)null;
@@ -366,37 +409,6 @@ namespace TheSharpTurn
             }
 
             return nearest;
-        }
-
-        private int GetForwardGap(TrafficObject obj, TrafficObject other)
-        {
-            int objCenter = obj.X + obj.Width / 2;
-            int otherCenter = other.X + other.Width / 2;
-
-            if (obj.Direction == TravelDirection.Right)
-            {
-                if (otherCenter <= objCenter)
-                    return int.MaxValue;
-
-                int gap = other.X - (obj.X + obj.Width);
-
-                if (gap < 0)
-                    gap = 0;
-
-                return gap;
-            }
-            else
-            {
-                if (otherCenter >= objCenter)
-                    return int.MaxValue;
-
-                int gap = obj.X - (other.X + other.Width);
-
-                if (gap < 0)
-                    gap = 0;
-
-                return gap;
-            }
         }
 
         private bool TryAutomaticRoadLaneChange(RoadUser roadUser)
@@ -455,6 +467,291 @@ namespace TheSharpTurn
             return true;
         }
 
+        private void UpdateBicycle(Bicycle bicycle)
+        {
+            int correctLane;
+
+            if (bicycle.Direction == TravelDirection.Left)
+                correctLane = 6;
+            else
+                correctLane = 7;
+
+            if (bicycle.Lane != correctLane)
+            {
+                if (!TryMoveBicycleToLane(bicycle, correctLane))
+                {
+                    Bicycle oncoming = FindBicycleAhead(bicycle, false);
+
+                    if (oncoming != null && GetForwardGap(bicycle, oncoming) <= 40)
+                    {
+                        bicycle.ActualSpeed = 0;
+                        return;
+                    }
+                }
+
+                MoveAtBestSpeed(bicycle);
+                return;
+            }
+
+            Bicycle blocker = FindBicycleAhead(bicycle, true);
+
+            if (blocker != null)
+            {
+                int gap = GetForwardGap(bicycle, blocker);
+                bool blockerIsSlower = blocker.ActualSpeed < bicycle.DesiredSpeed ||
+                    blocker.DesiredSpeed < bicycle.DesiredSpeed;
+
+                if (blockerIsSlower && gap <= bicycle.DesiredSpeed + 8)
+                {
+                    int passingLane;
+
+                    if (correctLane == 6)
+                        passingLane = 7;
+                    else
+                        passingLane = 6;
+
+                    if (IsBikePassingLaneSafe(bicycle, passingLane))
+                        TryMoveBicycleToLane(bicycle, passingLane);
+                }
+            }
+
+            MoveAtBestSpeed(bicycle);
+        }
+
+        private Bicycle FindBicycleAhead(Bicycle bicycle, bool sameDirection)
+        {
+            Bicycle nearest = (Bicycle)null;
+            int nearestGap = int.MaxValue;
+
+            for (int i = 0; i < trafficObjects.Count; i++)
+            {
+                TrafficObject current = trafficObjects[i];
+
+                if (current == bicycle || !(current is Bicycle))
+                    continue;
+
+                if (current.Lane != bicycle.Lane)
+                    continue;
+
+                if (sameDirection && current.Direction != bicycle.Direction)
+                    continue;
+
+                if (!sameDirection && current.Direction == bicycle.Direction)
+                    continue;
+
+                int gap = GetForwardGap(bicycle, current);
+
+                if (gap < nearestGap)
+                {
+                    nearestGap = gap;
+                    nearest = (Bicycle)current;
+                }
+            }
+
+            return nearest;
+        }
+
+        private bool IsBikePassingLaneSafe(Bicycle bicycle, int targetLane)
+        {
+            int targetY = BikeTop + (targetLane - 6) * BikeLaneHeight +
+                (BikeLaneHeight - bicycle.Height) / 2;
+
+            Rectangle targetBounds = new Rectangle(bicycle.X, targetY,
+                bicycle.Width, bicycle.Height);
+            Rectangle safeBounds = targetBounds;
+            safeBounds.Inflate(8, 1);
+
+            if (!trafficObjects.IsAreaFree(safeBounds, bicycle))
+                return false;
+
+            int bicycleCenter = bicycle.X + bicycle.Width / 2;
+
+            for (int i = 0; i < trafficObjects.Count; i++)
+            {
+                TrafficObject current = trafficObjects[i];
+
+                if (!(current is Bicycle) || current == bicycle)
+                    continue;
+
+                if (current.Lane == targetLane &&
+                    current.Direction != bicycle.Direction)
+                {
+                    int currentCenter = current.X + current.Width / 2;
+
+                    if (Math.Abs(currentCenter - bicycleCenter) < 100)
+                        return false;
+                }
+            }
+
+            return true;
+        }
+
+        private bool TryMoveBicycleToLane(Bicycle bicycle, int targetLane)
+        {
+            if (targetLane < 6 || targetLane > 7)
+                return false;
+
+            int targetY = BikeTop + (targetLane - 6) * BikeLaneHeight +
+                (BikeLaneHeight - bicycle.Height) / 2;
+
+            Rectangle targetBounds = new Rectangle(bicycle.X, targetY,
+                bicycle.Width, bicycle.Height);
+            Rectangle safeBounds = targetBounds;
+            safeBounds.Inflate(8, 1);
+
+            if (!trafficObjects.IsAreaFree(safeBounds, bicycle))
+                return false;
+
+            bicycle.Lane = targetLane;
+            bicycle.Y = targetY;
+            return true;
+        }
+
+        private void UpdatePedestrian(Pedestrian pedestrian)
+        {
+            Pedestrian blocker = FindPedestrianAhead(pedestrian);
+
+            if (blocker != null)
+            {
+                int gap = GetForwardGap(pedestrian, blocker);
+
+                if (blocker.Direction == pedestrian.Direction)
+                {
+                    bool blockerIsSlower = blocker.ActualSpeed < pedestrian.DesiredSpeed ||
+                        blocker.DesiredSpeed < pedestrian.DesiredSpeed;
+
+                    if (blockerIsSlower && gap <= pedestrian.DesiredSpeed + 6)
+                        TryMovePedestrianToLane(pedestrian,
+                            GetPairedPedestrianLane(pedestrian.Lane));
+                }
+                else if (gap <= 20)
+                {
+                    int keepRightLane = GetPedestrianKeepRightLane(pedestrian);
+
+                    if (pedestrian.Lane != keepRightLane)
+                        TryMovePedestrianToLane(pedestrian, keepRightLane);
+                }
+            }
+
+            MoveAtBestSpeed(pedestrian);
+        }
+
+        private Pedestrian FindPedestrianAhead(Pedestrian pedestrian)
+        {
+            Pedestrian nearest = (Pedestrian)null;
+            int nearestGap = int.MaxValue;
+
+            for (int i = 0; i < trafficObjects.Count; i++)
+            {
+                TrafficObject current = trafficObjects[i];
+
+                if (current == pedestrian || !(current is Pedestrian))
+                    continue;
+
+                if (current.Lane != pedestrian.Lane)
+                    continue;
+
+                int gap = GetForwardGap(pedestrian, current);
+
+                if (gap < nearestGap)
+                {
+                    nearestGap = gap;
+                    nearest = (Pedestrian)current;
+                }
+            }
+
+            return nearest;
+        }
+
+        private int GetPairedPedestrianLane(int lane)
+        {
+            switch (lane)
+            {
+                case 8:
+                    return 9;
+                case 9:
+                    return 8;
+                case 10:
+                    return 11;
+                case 11:
+                    return 10;
+            }
+
+            return lane;
+        }
+
+        private int GetPedestrianKeepRightLane(Pedestrian pedestrian)
+        {
+            if (pedestrian.Lane == 8 || pedestrian.Lane == 9)
+            {
+                if (pedestrian.Direction == TravelDirection.Right)
+                    return 9;
+                else
+                    return 8;
+            }
+
+            if (pedestrian.Direction == TravelDirection.Right)
+                return 11;
+            else
+                return 10;
+        }
+
+        private bool TryMovePedestrianToLane(Pedestrian pedestrian, int targetLane)
+        {
+            if (targetLane < 8 || targetLane > 11)
+                return false;
+
+            if ((pedestrian.Lane <= 9 && targetLane >= 10) ||
+                (pedestrian.Lane >= 10 && targetLane <= 9))
+                return false;
+
+            int targetY = GetPedestrianLaneTop(targetLane) +
+                (PedestrianLaneHeight - pedestrian.Height) / 2;
+
+            Rectangle targetBounds = new Rectangle(pedestrian.X, targetY,
+                pedestrian.Width, pedestrian.Height);
+            Rectangle safeBounds = targetBounds;
+            safeBounds.Inflate(3, 1);
+
+            if (!trafficObjects.IsAreaFree(safeBounds, pedestrian))
+                return false;
+
+            pedestrian.Lane = targetLane;
+            pedestrian.Y = targetY;
+            return true;
+        }
+
+        private int GetForwardGap(TrafficObject obj, TrafficObject other)
+        {
+            int objCenter = obj.X + obj.Width / 2;
+            int otherCenter = other.X + other.Width / 2;
+
+            if (obj.Direction == TravelDirection.Right)
+            {
+                if (otherCenter <= objCenter)
+                    return int.MaxValue;
+
+                int gap = other.X - (obj.X + obj.Width);
+
+                if (gap < 0)
+                    gap = 0;
+
+                return gap;
+            }
+            else
+            {
+                if (otherCenter >= objCenter)
+                    return int.MaxValue;
+
+                int gap = obj.X - (other.X + other.Width);
+
+                if (gap < 0)
+                    gap = 0;
+
+                return gap;
+            }
+        }
+
         private void MoveAtBestSpeed(TrafficObject obj)
         {
             int allowedSpeed = obj.DesiredSpeed;
@@ -491,102 +788,147 @@ namespace TheSharpTurn
                 obj.X + obj.Width < -OffScreenBuffer;
         }
 
-        private void buttonModify_Click(object sender, EventArgs e)
+        private void buttonManual_Click(object sender, EventArgs e)
         {
+            if (manualObject != null)
+            {
+                EndManualMode("Manual Mode ended.");
+                return;
+            }
+
             if (curIndex < 0 || curIndex >= trafficObjects.Count)
             {
-                labelStatus.Text = "Select an object before modifying it.";
+                labelStatus.Text = "Select an object before entering Manual Mode.";
                 return;
             }
 
-            TrafficObject obj = trafficObjects[curIndex];
+            manualObject = trafficObjects[curIndex];
+            placementMode = false;
+            buttonManual.Text = "Exit Manual Mode";
+            labelStatus.Text = "Manual Mode: W/S speed, A/D lane, Space stop, H action, Esc exit.";
+            UpdateSelectedInfo();
+        }
 
-            if (comboType.SelectedIndex != GetObjectTypeIndex(obj))
+        private void EndManualMode(string message)
+        {
+            manualObject = (TrafficObject)null;
+            buttonManual.Text = "Manual Mode";
+            labelStatus.Text = message;
+            UpdateSelectedInfo();
+        }
+
+        private void Form1_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (manualObject == null)
+                return;
+
+            if (e.KeyCode == Keys.Escape)
             {
-                labelStatus.Text = "The object type cannot be changed. Delete it and add a new object instead.";
+                EndManualMode("Manual Mode ended.");
+                e.Handled = true;
                 return;
             }
 
-            if (!ApplySelectedModel(obj))
+            if (e.KeyCode == Keys.W || e.KeyCode == Keys.Up)
             {
-                labelStatus.Text = "The larger model would overlap another object, so the change was cancelled.";
-                SetEditorFromSelectedObject();
-                return;
+                if (manualObject.DesiredSpeed < GetMaximumSpeed(manualObject))
+                    manualObject.DesiredSpeed++;
+
+                labelStatus.Text = "Desired speed increased.";
+                e.Handled = true;
+            }
+            else if (e.KeyCode == Keys.S || e.KeyCode == Keys.Down)
+            {
+                if (manualObject.DesiredSpeed > 0)
+                    manualObject.DesiredSpeed--;
+
+                labelStatus.Text = "Desired speed decreased.";
+                e.Handled = true;
+            }
+            else if (e.KeyCode == Keys.Space)
+            {
+                manualObject.DesiredSpeed = 0;
+                manualObject.ActualSpeed = 0;
+                labelStatus.Text = "Object stopped.";
+                e.Handled = true;
+            }
+            else if (e.KeyCode == Keys.A || e.KeyCode == Keys.Left)
+            {
+                TryManualLaneChange(manualObject, -1);
+                e.Handled = true;
+            }
+            else if (e.KeyCode == Keys.D || e.KeyCode == Keys.Right)
+            {
+                TryManualLaneChange(manualObject, 1);
+                e.Handled = true;
+            }
+            else if (e.KeyCode == Keys.H)
+            {
+                if (manualObject is EmergencyVehicle)
+                {
+                    EmergencyVehicle emergency = (EmergencyVehicle)manualObject;
+                    emergency.SirenOn = !emergency.SirenOn;
+
+                    if (emergency.SirenOn)
+                        labelStatus.Text = "Emergency siren ON.";
+                    else
+                        labelStatus.Text = "Emergency siren OFF.";
+                }
+                else
+                {
+                    labelStatus.Text = "Horn/shout audio will be connected when the WAV assets are added.";
+                }
+
+                e.Handled = true;
             }
 
             UpdateSelectedInfo();
-            labelStatus.Text = "Object model modified. Desired speed changes are available only in Manual Mode.";
             pictureBoxMap.Invalidate();
         }
 
-        private bool ApplySelectedModel(TrafficObject obj)
+        private int GetMaximumSpeed(TrafficObject obj)
         {
-            if (obj is Car)
-            {
-                Car car = (Car)obj;
-                CarModel oldModel = car.Model;
-                car.Model = (CarModel)comboModel.SelectedIndex;
+            if (obj is Bicycle)
+                return 3;
 
-                if (!trafficObjects.IsAreaFree(car.Bounds, car))
-                {
-                    car.Model = oldModel;
-                    return false;
-                }
-            }
-            else if (obj is Motorcycle)
-            {
-                Motorcycle motorcycle = (Motorcycle)obj;
-                MotorcycleModel oldModel = motorcycle.Model;
-                motorcycle.Model = (MotorcycleModel)comboModel.SelectedIndex;
+            if (obj is Pedestrian)
+                return 2;
 
-                if (!trafficObjects.IsAreaFree(motorcycle.Bounds, motorcycle))
-                {
-                    motorcycle.Model = oldModel;
-                    return false;
-                }
-            }
-            else if (obj is Bus)
-            {
-                Bus bus = (Bus)obj;
-                BusModel oldModel = bus.Model;
-                bus.Model = (BusModel)comboModel.SelectedIndex;
+            return 5;
+        }
 
-                if (!trafficObjects.IsAreaFree(bus.Bounds, bus))
-                {
-                    bus.Model = oldModel;
-                    return false;
-                }
-            }
-            else if (obj is EmergencyVehicle)
-            {
-                EmergencyVehicle emergency = (EmergencyVehicle)obj;
-                EmergencyVehicleModel oldModel = emergency.Model;
-                emergency.Model = (EmergencyVehicleModel)comboModel.SelectedIndex;
+        private void TryManualLaneChange(TrafficObject obj, int verticalDirection)
+        {
+            bool changed = false;
 
-                if (!trafficObjects.IsAreaFree(emergency.Bounds, emergency))
-                {
-                    emergency.Model = oldModel;
-                    return false;
-                }
+            if (obj is RoadUser)
+            {
+                RoadUser roadUser = (RoadUser)obj;
+                changed = TryMoveRoadUserToLane(roadUser,
+                    roadUser.Lane + verticalDirection);
             }
             else if (obj is Bicycle)
             {
                 Bicycle bicycle = (Bicycle)obj;
-                BicycleModel oldModel = bicycle.Model;
-                bicycle.Model = (BicycleModel)comboModel.SelectedIndex;
-
-                if (!trafficObjects.IsAreaFree(bicycle.Bounds, bicycle))
-                {
-                    bicycle.Model = oldModel;
-                    return false;
-                }
+                changed = TryMoveBicycleToLane(bicycle,
+                    bicycle.Lane + verticalDirection);
             }
             else if (obj is Pedestrian)
             {
-                ((Pedestrian)obj).Model = (PedestrianModel)comboModel.SelectedIndex;
+                Pedestrian pedestrian = (Pedestrian)obj;
+                changed = TryMovePedestrianToLane(pedestrian,
+                    pedestrian.Lane + verticalDirection);
             }
 
-            return true;
+            if (changed)
+                labelStatus.Text = "Lane changed.";
+            else
+                labelStatus.Text = "Lane change is not available or the target lane is blocked.";
+        }
+
+        private void buttonModify_Click(object sender, EventArgs e)
+        {
+            labelStatus.Text = "Use Manual Mode to modify an existing object's state.";
         }
 
         private void buttonDelete_Click(object sender, EventArgs e)
@@ -596,6 +938,9 @@ namespace TheSharpTurn
                 labelStatus.Text = "Select an object before deleting it.";
                 return;
             }
+
+            if (trafficObjects[curIndex] == manualObject)
+                EndManualMode("Manual Mode ended because the object was deleted.");
 
             trafficObjects.Remove(curIndex);
             curIndex = -1;
@@ -633,6 +978,8 @@ namespace TheSharpTurn
             if (openFileDialog1.ShowDialog() == DialogResult.OK)
             {
                 trafficObjects = TrafficObjectFile.Load(openFileDialog1.FileName);
+                manualObject = (TrafficObject)null;
+                buttonManual.Text = "Manual Mode";
                 curIndex = -1;
                 placementMode = false;
                 UpdateSelectedInfo();
@@ -828,10 +1175,13 @@ namespace TheSharpTurn
                     "\r\nLane: " + obj.Lane.ToString() +
                     "\r\nSpeed: " + obj.ActualSpeed.ToString() +
                     " / " + obj.DesiredSpeed.ToString();
+
+                buttonManual.Enabled = true;
             }
             else
             {
                 labelSelected.Text = "Selected: none";
+                buttonManual.Enabled = manualObject != null;
             }
         }
     }
