@@ -160,6 +160,11 @@ namespace TheSharpTurn
             0,
             0,
             0});
+            this.numSpeed.Minimum = new decimal(new int[] {
+            1,
+            0,
+            0,
+            0});
             this.numSpeed.Name = "numSpeed";
             this.numSpeed.Size = new System.Drawing.Size(210, 23);
             this.numSpeed.TabIndex = 6;
