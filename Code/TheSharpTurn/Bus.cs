@@ -30,6 +30,19 @@ namespace TheSharpTurn
             set
             {
                 model = value;
+
+                switch (model)
+                {
+                    case BusModel.Regular:
+                        Width = 64;
+                        Height = 20;
+                        break;
+
+                    case BusModel.Articulated:
+                        Width = 88;
+                        Height = 20;
+                        break;
+                }
             }
         }
 
