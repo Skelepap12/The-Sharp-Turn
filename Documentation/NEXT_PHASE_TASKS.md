@@ -1,5 +1,13 @@
 # Next Phase Tasks
 
+## Phase 7 - Current Regression Checks
+
+- Verify regular RoadUsers only overtake on the left side of their direction of travel.
+- Verify a RoadUser returns to the lane it left after safely completing a regular overtake.
+- Verify a RoadUser in the already-leftmost road lane slows behind traffic instead of passing on the right.
+- Verify emergency-vehicle siren yielding still allows the blocking RoadUser to move to either safe adjacent lane as before.
+- Verify manual lane changes cancel any pending automatic return-to-lane state.
+
 ## Phase 8 - Final UI and Graphics
 
 - Add a proper full-screen option while keeping normal windowed mode available.
