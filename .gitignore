@@ -1,8 +1,17 @@
-.vs/
-.vscode/
-bin/
-obj/
-*.user
+# Visual Studio / VS Code local state
+**/.vs/
+**/.vscode/
 *.suo
+*.user
 *.userosscache
 *.sln.docstates
+*.csproj.user
+
+# Build output
+**/bin/
+**/obj/
+
+# Common generated/debug files
+*.pdb
+*.cache
+*.tmp
