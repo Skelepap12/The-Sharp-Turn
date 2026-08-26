@@ -10,7 +10,7 @@ namespace TheSharpTurn
 
         public Pedestrian()
             : this(0, 0, 0, TravelDirection.Right, 0,
-                  PedestrianModel.Skinny)
+                  PedestrianModel.Male)
         { }
 
         public Pedestrian(int xVal, int yVal, int laneVal,
@@ -36,10 +36,10 @@ namespace TheSharpTurn
 
         public override void Draw(Graphics g)
         {
-            Brush bodyBrush = Brushes.Tan;
+            Brush bodyBrush = Brushes.SteelBlue;
 
-            if (Model == PedestrianModel.Chubby)
-                bodyBrush = Brushes.BurlyWood;
+            if (Model == PedestrianModel.Female)
+                bodyBrush = Brushes.MediumPurple;
 
             int headSize = 8;
             int headX = X + (Width - headSize) / 2;
