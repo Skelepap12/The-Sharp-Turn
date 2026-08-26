@@ -99,8 +99,8 @@ namespace TheSharpTurn
                     break;
 
                 case 5:
-                    comboModel.Items.Add("Skinny");
-                    comboModel.Items.Add("Chubby");
+                    comboModel.Items.Add("Male");
+                    comboModel.Items.Add("Female");
                     numSpeed.Maximum = 2;
                     numSpeed.Value = 1;
                     break;
