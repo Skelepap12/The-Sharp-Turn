@@ -40,11 +40,11 @@
     <Compile Include="Core\TrafficObject.cs" />
     <Compile Include="Core\TrafficObjectFile.cs" />
     <Compile Include="Core\TrafficObjectList.cs" />
-    <Compile Include="Vehicle\RoadUser.cs" />
-    <Compile Include="Vehicle\Car.cs" />
-    <Compile Include="Vehicle\Motorcycle.cs" />
-    <Compile Include="Vehicle\Bus.cs" />
-    <Compile Include="Vehicle\EmergencyVehicle.cs" />
+    <Compile Include="Motor Vehicle\RoadUser.cs" />
+    <Compile Include="Motor Vehicle\Car.cs" />
+    <Compile Include="Motor Vehicle\Motorcycle.cs" />
+    <Compile Include="Motor Vehicle\Bus.cs" />
+    <Compile Include="Motor Vehicle\EmergencyVehicle.cs" />
     <Compile Include="Bike\BikePathUser.cs" />
     <Compile Include="Bike\Bicycle.cs" />
     <Compile Include="Pedestrian\SidewalkUser.cs" />
