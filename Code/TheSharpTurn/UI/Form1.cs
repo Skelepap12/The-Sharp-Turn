@@ -76,8 +76,8 @@ namespace TheSharpTurn
                     break;
 
                 case 2:
-                    comboModel.Items.Add("Regular");
-                    comboModel.Items.Add("Articulated");
+                    comboModel.Items.Add("City Bus");
+                    comboModel.Items.Add("Intercity Bus");
                     numSpeed.Maximum = 5;
                     numSpeed.Value = 3;
                     break;
