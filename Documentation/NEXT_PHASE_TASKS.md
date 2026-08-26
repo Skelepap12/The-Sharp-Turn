@@ -2,11 +2,13 @@
 
 ## Phase 7 - Current Regression Checks
 
-- Verify regular RoadUsers only overtake on the left side of their direction of travel.
+- Verify regular RoadUsers try to overtake on the left side of their direction of travel first.
+- Verify they use the right lane only when the left lane is unavailable or they are already in the leftmost lane.
+- Verify a RoadUser matches the slower vehicle ahead when neither adjacent passing lane is available.
 - Verify a RoadUser returns to the lane it left after safely completing a regular overtake.
-- Verify a RoadUser in the already-leftmost road lane slows behind traffic instead of passing on the right.
 - Verify emergency-vehicle siren yielding still allows the blocking RoadUser to move to either safe adjacent lane as before.
 - Verify manual lane changes cancel any pending automatic return-to-lane state.
+- Verify A/Left and D/Right are relative to travel direction: controls are reversed for objects travelling Left.
 
 ## Phase 8 - Final UI and Graphics
 
