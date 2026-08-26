@@ -313,7 +313,13 @@ namespace TheSharpTurn
                 TrafficObject obj = trafficObjects[i];
 
                 if (obj == manualObject)
-                    MoveAtBestSpeed(obj);
+                {
+                    if (obj is EmergencyVehicle &&
+                        ((EmergencyVehicle)obj).SirenOn)
+                        UpdateEmergencyVehicle((EmergencyVehicle)obj);
+                    else
+                        MoveAtBestSpeed(obj);
+                }
                 else if (obj is EmergencyVehicle)
                     UpdateEmergencyVehicle((EmergencyVehicle)obj);
                 else if (obj is RoadUser)
@@ -468,32 +474,24 @@ namespace TheSharpTurn
 
         private bool TryEmergencyRoadLaneChange(RoadUser roadUser)
         {
-            switch (roadUser.Lane)
+            int rightLane;
+            int leftLane;
+
+            if (roadUser.Direction == TravelDirection.Right)
             {
-                case 0:
-                    return TryMoveRoadUserToLane(roadUser, 1);
-
-                case 1:
-                    if (TryMoveRoadUserToLane(roadUser, 2))
-                        return true;
-                    return TryMoveRoadUserToLane(roadUser, 0);
-
-                case 2:
-                    return TryMoveRoadUserToLane(roadUser, 1);
-
-                case 3:
-                    return TryMoveRoadUserToLane(roadUser, 4);
-
-                case 4:
-                    if (TryMoveRoadUserToLane(roadUser, 3))
-                        return true;
-                    return TryMoveRoadUserToLane(roadUser, 5);
-
-                case 5:
-                    return TryMoveRoadUserToLane(roadUser, 4);
+                rightLane = roadUser.Lane + 1;
+                leftLane = roadUser.Lane - 1;
+            }
+            else
+            {
+                rightLane = roadUser.Lane - 1;
+                leftLane = roadUser.Lane + 1;
             }
 
-            return false;
+            if (TryMoveRoadUserToLane(roadUser, rightLane))
+                return true;
+
+            return TryMoveRoadUserToLane(roadUser, leftLane);
         }
 
         private bool TryMoveRoadUserToLane(RoadUser roadUser, int targetLane)
