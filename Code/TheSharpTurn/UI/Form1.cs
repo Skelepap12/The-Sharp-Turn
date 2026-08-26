@@ -33,7 +33,6 @@ namespace TheSharpTurn
             comboType.SelectedIndex = 0;
             UpdateModelChoices();
 
-            buttonModify.Enabled = false;
             buttonManual.Click += new EventHandler(buttonManual_Click);
             this.KeyDown += new KeyEventHandler(Form1_KeyDown);
 
@@ -804,7 +803,7 @@ namespace TheSharpTurn
 
             manualObject = trafficObjects[curIndex];
             placementMode = false;
-            buttonManual.Text = "Exit Manual Mode";
+            buttonManual.Text = "Stop Manually Controlling Object";
             labelStatus.Text = "Manual Mode: W/S speed, A/D lane, Space stop, H action, Esc exit.";
             UpdateSelectedInfo();
         }
@@ -812,7 +811,7 @@ namespace TheSharpTurn
         private void EndManualMode(string message)
         {
             manualObject = (TrafficObject)null;
-            buttonManual.Text = "Manual Mode";
+            buttonManual.Text = "Manually Control Selected Object";
             labelStatus.Text = message;
             UpdateSelectedInfo();
         }
@@ -926,11 +925,6 @@ namespace TheSharpTurn
                 labelStatus.Text = "Lane change is not available or the target lane is blocked.";
         }
 
-        private void buttonModify_Click(object sender, EventArgs e)
-        {
-            labelStatus.Text = "Use Manual Mode to modify an existing object's state.";
-        }
-
         private void buttonDelete_Click(object sender, EventArgs e)
         {
             if (curIndex < 0 || curIndex >= trafficObjects.Count)
@@ -979,7 +973,7 @@ namespace TheSharpTurn
             {
                 trafficObjects = TrafficObjectFile.Load(openFileDialog1.FileName);
                 manualObject = (TrafficObject)null;
-                buttonManual.Text = "Manual Mode";
+                buttonManual.Text = "Manually Control Selected Object";
                 curIndex = -1;
                 placementMode = false;
                 UpdateSelectedInfo();
