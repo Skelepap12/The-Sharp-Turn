@@ -315,13 +315,8 @@ namespace TheSharpTurn
                 return;
             }
 
-            obj.DesiredSpeed = (int)numSpeed.Value;
-
-            if (obj.ActualSpeed > obj.DesiredSpeed)
-                obj.ActualSpeed = obj.DesiredSpeed;
-
             UpdateSelectedInfo();
-            labelStatus.Text = "Object modified.";
+            labelStatus.Text = "Object model modified. Desired speed changes are available only in Manual Mode.";
             pictureBoxMap.Invalidate();
         }
 
@@ -608,11 +603,6 @@ namespace TheSharpTurn
                 comboModel.SelectedIndex = (int)((Bicycle)obj).Model;
             else if (obj is Pedestrian)
                 comboModel.SelectedIndex = (int)((Pedestrian)obj).Model;
-
-            if (obj.DesiredSpeed <= (int)numSpeed.Maximum)
-                numSpeed.Value = obj.DesiredSpeed;
-            else
-                numSpeed.Value = numSpeed.Maximum;
         }
 
         private void UpdateSelectedInfo()
