@@ -56,6 +56,7 @@
       <DependentUpon>Form1.cs</DependentUpon>
     </Compile>
     <Compile Include="Audio\Form1.Audio.cs" />
+    <Compile Include="Motion\Form1.Motion.cs" />
     <Compile Include="Program.cs" />
   </ItemGroup>
   <ItemGroup>
