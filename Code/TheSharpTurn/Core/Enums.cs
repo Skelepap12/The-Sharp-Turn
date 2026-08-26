@@ -21,8 +21,8 @@ namespace TheSharpTurn
 
     public enum BusModel
     {
-        Regular,
-        Articulated
+        CityBus,
+        IntercityBus
     }
 
     public enum EmergencyVehicleModel
