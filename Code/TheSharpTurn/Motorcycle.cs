@@ -17,7 +17,7 @@ namespace TheSharpTurn
             TravelDirection directionVal, int desiredSpeedVal,
             MotorcycleModel modelVal)
             : base(xVal, yVal, laneVal, directionVal, desiredSpeedVal,
-                  desiredSpeedVal, 28, 12)
+                  desiredSpeedVal, 24, 10)
         {
             Model = modelVal;
         }
@@ -31,6 +31,19 @@ namespace TheSharpTurn
             set
             {
                 model = value;
+
+                switch (model)
+                {
+                    case MotorcycleModel.SportsBike:
+                        Width = 24;
+                        Height = 10;
+                        break;
+
+                    case MotorcycleModel.Chopper:
+                        Width = 30;
+                        Height = 12;
+                        break;
+                }
             }
         }
 
