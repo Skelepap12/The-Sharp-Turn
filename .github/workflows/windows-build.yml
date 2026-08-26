@@ -21,6 +21,34 @@ jobs:
       - name: Build The Sharp Turn
         run: msbuild Code\TheSharpTurn.sln /t:Rebuild /p:Configuration=Debug /p:Platform="Any CPU" /verbosity:minimal
 
+      - name: Capture current UI
+        shell: powershell
+        run: |
+          @'
+          Add-Type -AssemblyName System.Windows.Forms
+          Add-Type -AssemblyName System.Drawing
+          [System.Reflection.Assembly]::LoadFrom((Resolve-Path "Code\TheSharpTurn\bin\Debug\TheSharpTurn.exe")) | Out-Null
+          [System.Windows.Forms.Application]::EnableVisualStyles()
+          $form = New-Object TheSharpTurn.Form1
+          $form.Show()
+          [System.Windows.Forms.Application]::DoEvents()
+          Start-Sleep -Milliseconds 500
+          $bitmap = [System.Drawing.Bitmap]::new($form.Width, $form.Height)
+          $rect = [System.Drawing.Rectangle]::new(0, 0, $form.Width, $form.Height)
+          $form.DrawToBitmap($bitmap, $rect)
+          $bitmap.Save((Join-Path (Get-Location) "TheSharpTurn-UI.png"), [System.Drawing.Imaging.ImageFormat]::Png)
+          $bitmap.Dispose()
+          $form.Close()
+          '@ | Set-Content capture-ui.ps1
+          powershell.exe -NoProfile -STA -ExecutionPolicy Bypass -File .\capture-ui.ps1
+
+      - name: Upload UI screenshot
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: TheSharpTurn-UI
+          path: TheSharpTurn-UI.png
+
       - name: Upload debug build
         if: success()
         uses: actions/upload-artifact@v4
