@@ -346,16 +346,34 @@ namespace TheSharpTurn
 
         private void UpdateRoadUser(RoadUser roadUser)
         {
-            RoadUser blocker = FindRoadUserAhead(roadUser);
-
-            if (blocker != null)
+            if (roadUser.IsOvertaking)
             {
-                int gap = GetForwardGap(roadUser, blocker);
-                bool blockerIsSlower = blocker.ActualSpeed < roadUser.DesiredSpeed ||
-                    blocker.DesiredSpeed < roadUser.DesiredSpeed;
+                if (roadUser.Lane == roadUser.OvertakeReturnLane)
+                {
+                    roadUser.IsOvertaking = false;
+                    roadUser.OvertakeReturnLane = -1;
+                }
+                else if (TryMoveRoadUserToLane(roadUser,
+                    roadUser.OvertakeReturnLane))
+                {
+                    roadUser.IsOvertaking = false;
+                    roadUser.OvertakeReturnLane = -1;
+                }
+            }
 
-                if (blockerIsSlower && gap <= roadUser.DesiredSpeed + 12)
-                    TryAutomaticRoadLaneChange(roadUser);
+            if (!roadUser.IsOvertaking)
+            {
+                RoadUser blocker = FindRoadUserAhead(roadUser);
+
+                if (blocker != null)
+                {
+                    int gap = GetForwardGap(roadUser, blocker);
+                    bool blockerIsSlower = blocker.ActualSpeed < roadUser.DesiredSpeed ||
+                        blocker.DesiredSpeed < roadUser.DesiredSpeed;
+
+                    if (blockerIsSlower && gap <= roadUser.DesiredSpeed + 12)
+                        TryRegularRoadOvertake(roadUser);
+                }
             }
 
             MoveAtBestSpeed(roadUser);
@@ -376,7 +394,13 @@ namespace TheSharpTurn
                 int gap = GetForwardGap(emergency, blocker);
 
                 if (gap <= emergency.DesiredSpeed + 14 && blocker != manualObject)
-                    TryAutomaticRoadLaneChange(blocker);
+                {
+                    if (TryEmergencyRoadLaneChange(blocker))
+                    {
+                        blocker.IsOvertaking = false;
+                        blocker.OvertakeReturnLane = -1;
+                    }
+                }
             }
 
             MoveAtBestSpeed(emergency);
@@ -410,7 +434,39 @@ namespace TheSharpTurn
             return nearest;
         }
 
-        private bool TryAutomaticRoadLaneChange(RoadUser roadUser)
+        private bool TryRegularRoadOvertake(RoadUser roadUser)
+        {
+            int passingLane = -1;
+
+            if (roadUser.Direction == TravelDirection.Left)
+            {
+                if (roadUser.Lane == 0)
+                    passingLane = 1;
+                else if (roadUser.Lane == 1)
+                    passingLane = 2;
+            }
+            else
+            {
+                if (roadUser.Lane == 5)
+                    passingLane = 4;
+                else if (roadUser.Lane == 4)
+                    passingLane = 3;
+            }
+
+            if (passingLane < 0)
+                return false;
+
+            int returnLane = roadUser.Lane;
+
+            if (!TryMoveRoadUserToLane(roadUser, passingLane))
+                return false;
+
+            roadUser.OvertakeReturnLane = returnLane;
+            roadUser.IsOvertaking = true;
+            return true;
+        }
+
+        private bool TryEmergencyRoadLaneChange(RoadUser roadUser)
         {
             switch (roadUser.Lane)
             {
@@ -905,6 +961,12 @@ namespace TheSharpTurn
                 RoadUser roadUser = (RoadUser)obj;
                 changed = TryMoveRoadUserToLane(roadUser,
                     roadUser.Lane + verticalDirection);
+
+                if (changed)
+                {
+                    roadUser.IsOvertaking = false;
+                    roadUser.OvertakeReturnLane = -1;
+                }
             }
             else if (obj is Bicycle)
             {
