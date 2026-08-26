@@ -22,7 +22,6 @@ namespace TheSharpTurn
             this.panelControls = new System.Windows.Forms.Panel();
             this.buttonManual = new System.Windows.Forms.Button();
             this.buttonDelete = new System.Windows.Forms.Button();
-            this.buttonModify = new System.Windows.Forms.Button();
             this.buttonAdd = new System.Windows.Forms.Button();
             this.labelSelected = new System.Windows.Forms.Label();
             this.labelSelectedTitle = new System.Windows.Forms.Label();
@@ -75,7 +74,6 @@ namespace TheSharpTurn
             this.panelControls.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             this.panelControls.Controls.Add(this.buttonManual);
             this.panelControls.Controls.Add(this.buttonDelete);
-            this.panelControls.Controls.Add(this.buttonModify);
             this.panelControls.Controls.Add(this.buttonAdd);
             this.panelControls.Controls.Add(this.labelSelected);
             this.panelControls.Controls.Add(this.labelSelectedTitle);
@@ -94,39 +92,31 @@ namespace TheSharpTurn
             // buttonManual
             // 
             this.buttonManual.Enabled = false;
-            this.buttonManual.Location = new System.Drawing.Point(18, 492);
+            this.buttonManual.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.buttonManual.Location = new System.Drawing.Point(18, 472);
             this.buttonManual.Name = "buttonManual";
-            this.buttonManual.Size = new System.Drawing.Size(210, 36);
-            this.buttonManual.TabIndex = 12;
-            this.buttonManual.Text = "Manual Mode";
+            this.buttonManual.Size = new System.Drawing.Size(210, 56);
+            this.buttonManual.TabIndex = 11;
+            this.buttonManual.Text = "Manually Control Selected Object";
             this.buttonManual.UseVisualStyleBackColor = true;
             // 
             // buttonDelete
             // 
-            this.buttonDelete.Location = new System.Drawing.Point(18, 444);
+            this.buttonDelete.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.buttonDelete.Location = new System.Drawing.Point(18, 408);
             this.buttonDelete.Name = "buttonDelete";
-            this.buttonDelete.Size = new System.Drawing.Size(210, 36);
-            this.buttonDelete.TabIndex = 11;
-            this.buttonDelete.Text = "Delete Selected";
+            this.buttonDelete.Size = new System.Drawing.Size(210, 48);
+            this.buttonDelete.TabIndex = 10;
+            this.buttonDelete.Text = "Delete Selected Object";
             this.buttonDelete.UseVisualStyleBackColor = true;
             this.buttonDelete.Click += new System.EventHandler(this.buttonDelete_Click);
-            // 
-            // buttonModify
-            // 
-            this.buttonModify.Location = new System.Drawing.Point(18, 400);
-            this.buttonModify.Name = "buttonModify";
-            this.buttonModify.Size = new System.Drawing.Size(210, 36);
-            this.buttonModify.TabIndex = 10;
-            this.buttonModify.Text = "Modify Selected";
-            this.buttonModify.UseVisualStyleBackColor = true;
-            this.buttonModify.Click += new System.EventHandler(this.buttonModify_Click);
             // 
             // buttonAdd
             // 
             this.buttonAdd.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.buttonAdd.Location = new System.Drawing.Point(18, 212);
             this.buttonAdd.Name = "buttonAdd";
-            this.buttonAdd.Size = new System.Drawing.Size(210, 40);
+            this.buttonAdd.Size = new System.Drawing.Size(210, 48);
             this.buttonAdd.TabIndex = 9;
             this.buttonAdd.Text = "Add Object";
             this.buttonAdd.UseVisualStyleBackColor = true;
@@ -302,7 +292,6 @@ namespace TheSharpTurn
         private System.Windows.Forms.Button buttonAdd;
         private System.Windows.Forms.Label labelSelectedTitle;
         private System.Windows.Forms.Label labelSelected;
-        private System.Windows.Forms.Button buttonModify;
         private System.Windows.Forms.Button buttonDelete;
         private System.Windows.Forms.Button buttonManual;
         private System.Windows.Forms.PictureBox pictureBoxMap;
