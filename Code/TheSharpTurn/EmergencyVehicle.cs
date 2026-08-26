@@ -18,7 +18,7 @@ namespace TheSharpTurn
             TravelDirection directionVal, int desiredSpeedVal,
             EmergencyVehicleModel modelVal)
             : base(xVal, yVal, laneVal, directionVal, desiredSpeedVal,
-                  desiredSpeedVal, 42, 18)
+                  desiredSpeedVal, 48, 20)
         {
             Model = modelVal;
             SirenOn = false;
@@ -33,6 +33,24 @@ namespace TheSharpTurn
             set
             {
                 model = value;
+
+                switch (model)
+                {
+                    case EmergencyVehicleModel.PoliceCar:
+                        Width = 38;
+                        Height = 18;
+                        break;
+
+                    case EmergencyVehicleModel.Ambulance:
+                        Width = 48;
+                        Height = 20;
+                        break;
+
+                    case EmergencyVehicleModel.FireTruck:
+                        Width = 62;
+                        Height = 22;
+                        break;
+                }
             }
         }
 
