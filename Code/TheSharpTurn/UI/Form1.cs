@@ -10,13 +10,14 @@ namespace TheSharpTurn
         TrafficObjectList trafficObjects = new TrafficObjectList();
         int curIndex = -1;
         bool placementMode = false;
+        Timer simulationTimer = new Timer();
 
         const int RoadLaneHeight = 50;
         const int RoadTop = 145;
         const int MedianHeight = 12;
         const int BikeTop = 75;
         const int BikeLaneHeight = 24;
-        const int PedestrianLaneHeight = 36;
+        const int PedestrianLaneHeight = 24;
         const int TopPedestrianTop = 20;
         const int BottomPedestrianTop = 510;
 
@@ -31,6 +32,10 @@ namespace TheSharpTurn
             comboType.SelectedIndex = 0;
             UpdateModelChoices();
             UpdateSelectedInfo();
+
+            simulationTimer.Interval = 40;
+            simulationTimer.Tick += new EventHandler(simulationTimer_Tick);
+            simulationTimer.Start();
         }
 
         private int MedianTop
@@ -212,11 +217,7 @@ namespace TheSharpTurn
                     return;
                 }
 
-                if (lane == 8)
-                    laneTop = TopPedestrianTop;
-                else
-                    laneTop = BottomPedestrianTop;
-
+                laneTop = GetPedestrianLaneTop(lane);
                 laneHeight = PedestrianLaneHeight;
                 laneLimit = PedestrianLaneLimit;
             }
@@ -290,6 +291,45 @@ namespace TheSharpTurn
             }
 
             return (TrafficObject)null;
+        }
+
+        private void simulationTimer_Tick(object sender, EventArgs e)
+        {
+            for (int i = trafficObjects.Count - 1; i >= 0; i--)
+            {
+                TrafficObject obj = trafficObjects[i];
+                int oldX = obj.X;
+
+                obj.ActualSpeed = obj.DesiredSpeed;
+                obj.Move();
+
+                if (!trafficObjects.IsAreaFree(obj.Bounds, obj))
+                {
+                    obj.X = oldX;
+                    obj.ActualSpeed = 0;
+                }
+
+                if (IsOutsideMap(obj))
+                {
+                    trafficObjects.Remove(i);
+
+                    if (curIndex == i)
+                        curIndex = -1;
+                    else if (curIndex > i)
+                        curIndex--;
+                }
+            }
+
+            UpdateSelectedInfo();
+            pictureBoxMap.Invalidate();
+        }
+
+        private bool IsOutsideMap(TrafficObject obj)
+        {
+            const int OffScreenBuffer = 20;
+
+            return obj.X > pictureBoxMap.Width + OffScreenBuffer ||
+                obj.X + obj.Width < -OffScreenBuffer;
         }
 
         private void buttonModify_Click(object sender, EventArgs e)
@@ -463,14 +503,18 @@ namespace TheSharpTurn
             g.Clear(Color.FromArgb(94, 130, 82));
 
             g.FillRectangle(Brushes.LightGray, 0, TopPedestrianTop,
-                pictureBoxMap.Width, PedestrianLaneHeight);
+                pictureBoxMap.Width, PedestrianLaneHeight * 2);
             g.DrawRectangle(Pens.DimGray, 0, TopPedestrianTop,
-                pictureBoxMap.Width - 1, PedestrianLaneHeight);
+                pictureBoxMap.Width - 1, PedestrianLaneHeight * 2);
+            g.DrawLine(Pens.DarkGray, 0, TopPedestrianTop + PedestrianLaneHeight,
+                pictureBoxMap.Width, TopPedestrianTop + PedestrianLaneHeight);
 
             g.FillRectangle(Brushes.LightGray, 0, BottomPedestrianTop,
-                pictureBoxMap.Width, PedestrianLaneHeight);
+                pictureBoxMap.Width, PedestrianLaneHeight * 2);
             g.DrawRectangle(Pens.DimGray, 0, BottomPedestrianTop,
-                pictureBoxMap.Width - 1, PedestrianLaneHeight);
+                pictureBoxMap.Width - 1, PedestrianLaneHeight * 2);
+            g.DrawLine(Pens.DarkGray, 0, BottomPedestrianTop + PedestrianLaneHeight,
+                pictureBoxMap.Width, BottomPedestrianTop + PedestrianLaneHeight);
 
             g.FillRectangle(Brushes.DarkSeaGreen, 0, BikeTop,
                 pictureBoxMap.Width, BikeLaneHeight * 2);
@@ -493,7 +537,7 @@ namespace TheSharpTurn
             using (Font mapFont = new Font("Arial", 8, FontStyle.Bold))
             {
                 g.DrawString("PEDESTRIANS", mapFont, Brushes.DimGray,
-                    8, TopPedestrianTop + 10);
+                    8, TopPedestrianTop + 17);
                 g.DrawString("BIKES LEFT", mapFont, Brushes.White,
                     8, BikeTop + 5);
                 g.DrawString("BIKES RIGHT", mapFont, Brushes.White,
@@ -503,7 +547,7 @@ namespace TheSharpTurn
                 g.DrawString("ROAD RIGHT", mapFont, Brushes.White,
                     8, BottomRoadTop + 5);
                 g.DrawString("PEDESTRIANS", mapFont, Brushes.DimGray,
-                    8, BottomPedestrianTop + 10);
+                    8, BottomPedestrianTop + 17);
             }
         }
 
@@ -555,14 +599,25 @@ namespace TheSharpTurn
         private int GetPedestrianLane(int yP)
         {
             if (yP >= TopPedestrianTop &&
-                yP < TopPedestrianTop + PedestrianLaneHeight)
-                return 8;
+                yP < TopPedestrianTop + PedestrianLaneHeight * 2)
+                return 8 + (yP - TopPedestrianTop) / PedestrianLaneHeight;
 
             if (yP >= BottomPedestrianTop &&
-                yP < BottomPedestrianTop + PedestrianLaneHeight)
-                return 9;
+                yP < BottomPedestrianTop + PedestrianLaneHeight * 2)
+                return 10 + (yP - BottomPedestrianTop) / PedestrianLaneHeight;
 
             return -1;
+        }
+
+        private int GetPedestrianLaneTop(int lane)
+        {
+            if (lane >= 8 && lane <= 9)
+                return TopPedestrianTop + (lane - 8) * PedestrianLaneHeight;
+
+            if (lane >= 10 && lane <= 11)
+                return BottomPedestrianTop + (lane - 10) * PedestrianLaneHeight;
+
+            return 0;
         }
 
         private int GetObjectTypeIndex(TrafficObject obj)
