@@ -246,7 +246,6 @@ namespace TheSharpTurn
             }
 
             TrafficObject obj = CreateSelectedObject(lane, direction);
-
             if (obj == null)
                 return;
 
@@ -534,11 +533,25 @@ namespace TheSharpTurn
 
             if (bicycle.Lane != correctLane)
             {
-                if (!TryMoveBicycleToLane(bicycle, correctLane))
-                {
-                    Bicycle oncoming = FindBicycleAhead(bicycle, false);
+                Bicycle oncoming = FindBicycleAhead(bicycle, false);
+                bool oncomingIsClose = oncoming != null &&
+                    GetForwardGap(bicycle, oncoming) <= 40;
 
-                    if (oncoming != null && GetForwardGap(bicycle, oncoming) <= 40)
+                Bicycle bicycleAheadInCorrectLane = FindBicycleAheadInLane(
+                    bicycle, correctLane, true);
+                bool stillPassing = bicycleAheadInCorrectLane != null &&
+                    GetForwardGap(bicycle, bicycleAheadInCorrectLane) <=
+                    bicycle.DesiredSpeed + 8;
+
+                if (oncomingIsClose || !stillPassing)
+                {
+                    if (TryMoveBicycleToLane(bicycle, correctLane))
+                    {
+                        MoveAtBestSpeed(bicycle);
+                        return;
+                    }
+
+                    if (oncomingIsClose)
                     {
                         bicycle.ActualSpeed = 0;
                         return;
@@ -576,6 +589,13 @@ namespace TheSharpTurn
 
         private Bicycle FindBicycleAhead(Bicycle bicycle, bool sameDirection)
         {
+            return FindBicycleAheadInLane(bicycle, bicycle.Lane,
+                sameDirection);
+        }
+
+        private Bicycle FindBicycleAheadInLane(Bicycle bicycle, int lane,
+            bool sameDirection)
+        {
             Bicycle nearest = (Bicycle)null;
             int nearestGap = int.MaxValue;
 
@@ -586,7 +606,7 @@ namespace TheSharpTurn
                 if (current == bicycle || !(current is Bicycle))
                     continue;
 
-                if (current.Lane != bicycle.Lane)
+                if (current.Lane != lane)
                     continue;
 
                 if (sameDirection && current.Direction != bicycle.Direction)
