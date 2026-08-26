@@ -41,7 +41,7 @@ namespace TheSharpTurn
 
     public enum PedestrianModel
     {
-        Skinny,
-        Chubby
+        Male,
+        Female
     }
 }
