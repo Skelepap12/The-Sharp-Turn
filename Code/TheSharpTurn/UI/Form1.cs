@@ -21,9 +21,9 @@ namespace TheSharpTurn
         const int TopPedestrianTop = 20;
         const int BottomPedestrianTop = 510;
 
-        const int RoadLaneLimit = 6;
-        const int BikeLaneLimit = 10;
-        const int PedestrianLaneLimit = 10;
+        const int RoadLaneLimit = 12;
+        const int BikeLaneLimit = 20;
+        const int PedestrianLaneLimit = 20;
 
         public Form1()
         {
@@ -32,6 +32,10 @@ namespace TheSharpTurn
             comboType.SelectedIndex = 0;
             UpdateModelChoices();
             UpdateSelectedInfo();
+
+            // Model changes after creation are no longer part of the project.
+            // Manual Mode will be the official Modify mechanism in Phase 7.
+            buttonModify.Enabled = false;
 
             simulationTimer.Interval = 40;
             simulationTimer.Tick += new EventHandler(simulationTimer_Tick);
@@ -298,16 +302,11 @@ namespace TheSharpTurn
             for (int i = trafficObjects.Count - 1; i >= 0; i--)
             {
                 TrafficObject obj = trafficObjects[i];
-                int oldX = obj.X;
 
-                obj.ActualSpeed = obj.DesiredSpeed;
-                obj.Move();
-
-                if (!trafficObjects.IsAreaFree(obj.Bounds, obj))
-                {
-                    obj.X = oldX;
-                    obj.ActualSpeed = 0;
-                }
+                if (obj is RoadUser)
+                    UpdateRoadUser((RoadUser)obj);
+                else
+                    MoveAtBestSpeed(obj);
 
                 if (IsOutsideMap(obj))
                 {
@@ -322,6 +321,166 @@ namespace TheSharpTurn
 
             UpdateSelectedInfo();
             pictureBoxMap.Invalidate();
+        }
+
+        private void UpdateRoadUser(RoadUser roadUser)
+        {
+            RoadUser blocker = FindRoadUserAhead(roadUser);
+
+            if (blocker != null)
+            {
+                int gap = GetForwardGap(roadUser, blocker);
+                bool blockerIsSlower = blocker.ActualSpeed < roadUser.DesiredSpeed ||
+                    blocker.DesiredSpeed < roadUser.DesiredSpeed;
+
+                if (blockerIsSlower && gap <= roadUser.DesiredSpeed + 12)
+                    TryAutomaticRoadLaneChange(roadUser);
+            }
+
+            MoveAtBestSpeed(roadUser);
+        }
+
+        private RoadUser FindRoadUserAhead(RoadUser roadUser)
+        {
+            RoadUser nearest = (RoadUser)null;
+            int nearestGap = int.MaxValue;
+
+            for (int i = 0; i < trafficObjects.Count; i++)
+            {
+                TrafficObject current = trafficObjects[i];
+
+                if (current == roadUser || !(current is RoadUser))
+                    continue;
+
+                if (current.Lane != roadUser.Lane ||
+                    current.Direction != roadUser.Direction)
+                    continue;
+
+                int gap = GetForwardGap(roadUser, current);
+
+                if (gap < nearestGap)
+                {
+                    nearestGap = gap;
+                    nearest = (RoadUser)current;
+                }
+            }
+
+            return nearest;
+        }
+
+        private int GetForwardGap(TrafficObject obj, TrafficObject other)
+        {
+            int objCenter = obj.X + obj.Width / 2;
+            int otherCenter = other.X + other.Width / 2;
+
+            if (obj.Direction == TravelDirection.Right)
+            {
+                if (otherCenter <= objCenter)
+                    return int.MaxValue;
+
+                int gap = other.X - (obj.X + obj.Width);
+
+                if (gap < 0)
+                    gap = 0;
+
+                return gap;
+            }
+            else
+            {
+                if (otherCenter >= objCenter)
+                    return int.MaxValue;
+
+                int gap = obj.X - (other.X + other.Width);
+
+                if (gap < 0)
+                    gap = 0;
+
+                return gap;
+            }
+        }
+
+        private bool TryAutomaticRoadLaneChange(RoadUser roadUser)
+        {
+            switch (roadUser.Lane)
+            {
+                case 0:
+                    return TryMoveRoadUserToLane(roadUser, 1);
+
+                case 1:
+                    if (TryMoveRoadUserToLane(roadUser, 2))
+                        return true;
+                    return TryMoveRoadUserToLane(roadUser, 0);
+
+                case 2:
+                    return TryMoveRoadUserToLane(roadUser, 1);
+
+                case 3:
+                    return TryMoveRoadUserToLane(roadUser, 4);
+
+                case 4:
+                    if (TryMoveRoadUserToLane(roadUser, 3))
+                        return true;
+                    return TryMoveRoadUserToLane(roadUser, 5);
+
+                case 5:
+                    return TryMoveRoadUserToLane(roadUser, 4);
+            }
+
+            return false;
+        }
+
+        private bool TryMoveRoadUserToLane(RoadUser roadUser, int targetLane)
+        {
+            if (targetLane < 0 || targetLane > 5)
+                return false;
+
+            if ((roadUser.Lane <= 2 && targetLane > 2) ||
+                (roadUser.Lane >= 3 && targetLane < 3))
+                return false;
+
+            int targetY = GetRoadLaneTop(targetLane) +
+                (RoadLaneHeight - roadUser.Height) / 2;
+
+            Rectangle targetBounds = new Rectangle(roadUser.X, targetY,
+                roadUser.Width, roadUser.Height);
+
+            Rectangle safeBounds = targetBounds;
+            safeBounds.Inflate(12, 2);
+
+            if (!trafficObjects.IsAreaFree(safeBounds, roadUser))
+                return false;
+
+            roadUser.Lane = targetLane;
+            roadUser.Y = targetY;
+            return true;
+        }
+
+        private void MoveAtBestSpeed(TrafficObject obj)
+        {
+            int allowedSpeed = obj.DesiredSpeed;
+
+            while (allowedSpeed > 0 &&
+                !trafficObjects.IsAreaFree(GetMovedBounds(obj, allowedSpeed), obj))
+            {
+                allowedSpeed--;
+            }
+
+            obj.ActualSpeed = allowedSpeed;
+
+            if (obj.ActualSpeed > 0)
+                obj.Move();
+        }
+
+        private Rectangle GetMovedBounds(TrafficObject obj, int speed)
+        {
+            int nextX = obj.X;
+
+            if (obj.Direction == TravelDirection.Right)
+                nextX += speed;
+            else
+                nextX -= speed;
+
+            return new Rectangle(nextX, obj.Y, obj.Width, obj.Height);
         }
 
         private bool IsOutsideMap(TrafficObject obj)
