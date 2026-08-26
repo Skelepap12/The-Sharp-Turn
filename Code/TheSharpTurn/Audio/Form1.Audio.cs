@@ -26,17 +26,23 @@ namespace TheSharpTurn
             base.OnFormClosed(e);
         }
 
-        protected override void OnKeyDown(KeyEventArgs e)
+        private void HandleManualAudioAction()
         {
-            base.OnKeyDown(e);
-
-            if (manualObject == null || e.KeyCode != Keys.H)
+            if (manualObject == null)
                 return;
 
             if (manualObject is EmergencyVehicle)
             {
+                EmergencyVehicle emergency = (EmergencyVehicle)manualObject;
+                emergency.SirenOn = !emergency.SirenOn;
                 currentMovementSound = "";
                 actionSoundPauseTicks = 0;
+
+                if (emergency.SirenOn)
+                    labelStatus.Text = "Emergency siren ON.";
+                else
+                    labelStatus.Text = "Emergency siren OFF.";
+
                 return;
             }
 
