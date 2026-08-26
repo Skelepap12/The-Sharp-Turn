@@ -36,26 +36,26 @@
     <Reference Include="System.Windows.Forms" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Bicycle.cs" />
-    <Compile Include="BikePathUser.cs" />
-    <Compile Include="Bus.cs" />
-    <Compile Include="Car.cs" />
-    <Compile Include="EmergencyVehicle.cs" />
-    <Compile Include="Enums.cs" />
-    <Compile Include="Form1.cs">
+    <Compile Include="Core\Enums.cs" />
+    <Compile Include="Core\TrafficObject.cs" />
+    <Compile Include="Core\TrafficObjectFile.cs" />
+    <Compile Include="Core\TrafficObjectList.cs" />
+    <Compile Include="Vehicle\RoadUser.cs" />
+    <Compile Include="Vehicle\Car.cs" />
+    <Compile Include="Vehicle\Motorcycle.cs" />
+    <Compile Include="Vehicle\Bus.cs" />
+    <Compile Include="Vehicle\EmergencyVehicle.cs" />
+    <Compile Include="Bike\BikePathUser.cs" />
+    <Compile Include="Bike\Bicycle.cs" />
+    <Compile Include="Pedestrian\SidewalkUser.cs" />
+    <Compile Include="Pedestrian\Pedestrian.cs" />
+    <Compile Include="UI\Form1.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="Form1.Designer.cs">
+    <Compile Include="UI\Form1.Designer.cs">
       <DependentUpon>Form1.cs</DependentUpon>
     </Compile>
-    <Compile Include="Motorcycle.cs" />
-    <Compile Include="Pedestrian.cs" />
     <Compile Include="Program.cs" />
-    <Compile Include="RoadUser.cs" />
-    <Compile Include="SidewalkUser.cs" />
-    <Compile Include="TrafficObject.cs" />
-    <Compile Include="TrafficObjectFile.cs" />
-    <Compile Include="TrafficObjectList.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
