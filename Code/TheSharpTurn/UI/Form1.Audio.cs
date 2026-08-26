@@ -97,11 +97,17 @@ namespace TheSharpTurn
                 if (emergency.SirenOn)
                     return "siren.wav";
 
-                return "engine_loop.wav";
+                return "emergency_engine_loop.wav";
             }
 
-            if (obj is RoadUser)
-                return "engine_loop.wav";
+            if (obj is Car)
+                return "car_engine_loop.wav";
+
+            if (obj is Bus)
+                return "bus_engine_loop.wav";
+
+            if (obj is Motorcycle)
+                return "motorcycle_engine_loop.wav";
 
             if (obj is Bicycle)
                 return "bike_loop.wav";
