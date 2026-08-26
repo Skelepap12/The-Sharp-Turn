@@ -6,11 +6,9 @@ namespace TheSharpTurn
     public partial class Form1
     {
         const int RoadLaneChangeStep = 5;
-        const int RoadBrakeTickDelay = 2;
         const int BikeLaneChangeStep = 4;
         const int PedestrianLaneChangeStep = 6;
-        const int BikeBrakeTickDelay = 2;
-        const int PedestrianBrakeTickDelay = 2;
+        const int BrakeTickDelay = 2;
 
         private void simulationTimer_Tick(object sender, EventArgs e)
         {
@@ -37,8 +35,7 @@ namespace TheSharpTurn
                 else
                     MoveAtBestSpeed(obj);
 
-                if (obj is RoadUser)
-                    UpdateRoadLaneChange((RoadUser)obj);
+                UpdateLaneChange(obj);
 
                 if (IsOutsideMap(obj))
                 {
@@ -54,7 +51,6 @@ namespace TheSharpTurn
                 }
             }
 
-            UpdateSmoothMotion();
             UpdateSelectedInfo();
             pictureBoxMap.Invalidate();
         }
@@ -232,9 +228,6 @@ namespace TheSharpTurn
 
         private bool TryMoveRoadUserToLane(RoadUser roadUser, int targetLane)
         {
-            if (roadUser.IsChangingLane)
-                return false;
-
             if (targetLane < 0 || targetLane > 5)
                 return false;
 
@@ -244,60 +237,8 @@ namespace TheSharpTurn
 
             int targetY = GetRoadLaneTop(targetLane) +
                 (RoadLaneHeight - roadUser.Height) / 2;
-            int topY = Math.Min(roadUser.Y, targetY);
-            int bottomY = Math.Max(roadUser.Y + roadUser.Height,
-                targetY + roadUser.Height);
 
-            Rectangle laneChangeBounds = new Rectangle(roadUser.X, topY,
-                roadUser.Width, bottomY - topY);
-            laneChangeBounds.Inflate(12, 2);
-
-            if (!trafficObjects.IsAreaFree(laneChangeBounds, roadUser))
-                return false;
-
-            roadUser.Lane = targetLane;
-            roadUser.LaneChangeTargetY = targetY;
-
-            if (roadUser.Y == targetY)
-                roadUser.IsChangingLane = false;
-            else
-                roadUser.IsChangingLane = true;
-
-            return true;
-        }
-
-        private void UpdateRoadLaneChange(RoadUser roadUser)
-        {
-            if (!roadUser.IsChangingLane)
-                return;
-
-            int nextY = roadUser.Y;
-
-            if (roadUser.Y < roadUser.LaneChangeTargetY)
-            {
-                nextY += RoadLaneChangeStep;
-
-                if (nextY > roadUser.LaneChangeTargetY)
-                    nextY = roadUser.LaneChangeTargetY;
-            }
-            else if (roadUser.Y > roadUser.LaneChangeTargetY)
-            {
-                nextY -= RoadLaneChangeStep;
-
-                if (nextY < roadUser.LaneChangeTargetY)
-                    nextY = roadUser.LaneChangeTargetY;
-            }
-
-            Rectangle nextBounds = new Rectangle(roadUser.X, nextY,
-                roadUser.Width, roadUser.Height);
-
-            if (!trafficObjects.IsAreaFree(nextBounds, roadUser))
-                return;
-
-            roadUser.Y = nextY;
-
-            if (roadUser.Y == roadUser.LaneChangeTargetY)
-                roadUser.IsChangingLane = false;
+            return TryStartLaneChange(roadUser, targetLane, targetY, 12, 2);
         }
 
         private void UpdateBicycle(Bicycle bicycle)
@@ -332,6 +273,7 @@ namespace TheSharpTurn
                     if (oncomingIsClose)
                     {
                         bicycle.ActualSpeed = 0;
+                        bicycle.BrakeTickCounter = 0;
                         return;
                     }
                 }
@@ -448,17 +390,7 @@ namespace TheSharpTurn
             int targetY = BikeTop + (targetLane - 6) * BikeLaneHeight +
                 (BikeLaneHeight - bicycle.Height) / 2;
 
-            Rectangle targetBounds = new Rectangle(bicycle.X, targetY,
-                bicycle.Width, bicycle.Height);
-            Rectangle safeBounds = targetBounds;
-            safeBounds.Inflate(8, 1);
-
-            if (!trafficObjects.IsAreaFree(safeBounds, bicycle))
-                return false;
-
-            bicycle.Lane = targetLane;
-            bicycle.Y = targetY;
-            return true;
+            return TryStartLaneChange(bicycle, targetLane, targetY, 8, 1);
         }
 
         private void UpdatePedestrian(Pedestrian pedestrian)
@@ -562,17 +494,79 @@ namespace TheSharpTurn
             int targetY = GetPedestrianLaneTop(targetLane) +
                 (PedestrianLaneHeight - pedestrian.Height) / 2;
 
-            Rectangle targetBounds = new Rectangle(pedestrian.X, targetY,
-                pedestrian.Width, pedestrian.Height);
-            Rectangle safeBounds = targetBounds;
-            safeBounds.Inflate(3, 1);
+            return TryStartLaneChange(pedestrian, targetLane, targetY, 3, 1);
+        }
 
-            if (!trafficObjects.IsAreaFree(safeBounds, pedestrian))
+        private bool TryStartLaneChange(TrafficObject obj, int targetLane,
+            int targetY, int paddingX, int paddingY)
+        {
+            if (obj.IsChangingLane)
                 return false;
 
-            pedestrian.Lane = targetLane;
-            pedestrian.Y = targetY;
+            int topY = Math.Min(obj.Y, targetY);
+            int bottomY = Math.Max(obj.Y + obj.Height,
+                targetY + obj.Height);
+
+            Rectangle laneChangeBounds = new Rectangle(obj.X, topY,
+                obj.Width, bottomY - topY);
+            laneChangeBounds.Inflate(paddingX, paddingY);
+
+            if (!trafficObjects.IsAreaFree(laneChangeBounds, obj))
+                return false;
+
+            obj.Lane = targetLane;
+            obj.LaneChangeTargetY = targetY;
+            obj.IsChangingLane = obj.Y != targetY;
             return true;
+        }
+
+        private void UpdateLaneChange(TrafficObject obj)
+        {
+            if (!obj.IsChangingLane)
+                return;
+
+            int step = GetLaneChangeStep(obj);
+            int nextY = obj.Y;
+
+            if (obj.Y < obj.LaneChangeTargetY)
+            {
+                nextY += step;
+
+                if (nextY > obj.LaneChangeTargetY)
+                    nextY = obj.LaneChangeTargetY;
+            }
+            else if (obj.Y > obj.LaneChangeTargetY)
+            {
+                nextY -= step;
+
+                if (nextY < obj.LaneChangeTargetY)
+                    nextY = obj.LaneChangeTargetY;
+            }
+
+            Rectangle nextBounds = new Rectangle(obj.X, nextY,
+                obj.Width, obj.Height);
+
+            if (!trafficObjects.IsAreaFree(nextBounds, obj))
+                return;
+
+            obj.Y = nextY;
+
+            if (obj.Y == obj.LaneChangeTargetY)
+                obj.IsChangingLane = false;
+        }
+
+        private int GetLaneChangeStep(TrafficObject obj)
+        {
+            if (obj is RoadUser)
+                return RoadLaneChangeStep;
+
+            if (obj is BikePathUser)
+                return BikeLaneChangeStep;
+
+            if (obj is SidewalkUser)
+                return PedestrianLaneChangeStep;
+
+            return 1;
         }
 
         private int GetForwardGap(TrafficObject obj, TrafficObject other)
@@ -608,25 +602,23 @@ namespace TheSharpTurn
 
         private void MoveAtBestSpeed(TrafficObject obj)
         {
-            MoveAtBestSpeed(obj, obj.DesiredSpeed);
+            MoveAtBestSpeed(obj, obj.MaximumSpeed);
         }
 
-        private void MoveAtBestSpeed(TrafficObject obj, int maximumSpeed)
+        private void MoveAtBestSpeed(TrafficObject obj, int speedLimit)
         {
-            if (maximumSpeed < 0)
-                maximumSpeed = 0;
+            if (speedLimit < 0)
+                speedLimit = 0;
 
             int allowedSpeed = obj.DesiredSpeed;
 
-            if (allowedSpeed > maximumSpeed)
-                allowedSpeed = maximumSpeed;
+            if (allowedSpeed > obj.MaximumSpeed)
+                allowedSpeed = obj.MaximumSpeed;
 
-            int movementSpeed = allowedSpeed;
+            if (allowedSpeed > speedLimit)
+                allowedSpeed = speedLimit;
 
-            if (obj is RoadUser)
-                movementSpeed = GetRoadUserSpeedForTick((RoadUser)obj,
-                    allowedSpeed);
-
+            int movementSpeed = GetSpeedForTick(obj, allowedSpeed);
             int plannedSpeed = movementSpeed;
 
             while (movementSpeed > 0 &&
@@ -635,8 +627,8 @@ namespace TheSharpTurn
                 movementSpeed--;
             }
 
-            if (obj is RoadUser && movementSpeed < plannedSpeed)
-                ((RoadUser)obj).BrakeTickCounter = 0;
+            if (movementSpeed < plannedSpeed)
+                obj.BrakeTickCounter = 0;
 
             obj.ActualSpeed = movementSpeed;
 
@@ -644,23 +636,23 @@ namespace TheSharpTurn
                 obj.Move();
         }
 
-        private int GetRoadUserSpeedForTick(RoadUser roadUser, int allowedSpeed)
+        private int GetSpeedForTick(TrafficObject obj, int allowedSpeed)
         {
-            if (roadUser.ActualSpeed <= allowedSpeed)
+            if (obj.ActualSpeed <= allowedSpeed)
             {
-                roadUser.BrakeTickCounter = 0;
+                obj.BrakeTickCounter = 0;
                 return allowedSpeed;
             }
 
-            roadUser.BrakeTickCounter++;
+            obj.BrakeTickCounter++;
 
-            if (roadUser.BrakeTickCounter >= RoadBrakeTickDelay)
+            if (obj.BrakeTickCounter >= BrakeTickDelay)
             {
-                roadUser.BrakeTickCounter = 0;
-                return roadUser.ActualSpeed - 1;
+                obj.BrakeTickCounter = 0;
+                return obj.ActualSpeed - 1;
             }
 
-            return roadUser.ActualSpeed;
+            return obj.ActualSpeed;
         }
 
         private Rectangle GetMovedBounds(TrafficObject obj, int speed)
@@ -702,319 +694,22 @@ namespace TheSharpTurn
             else if (obj is Bicycle)
             {
                 Bicycle bicycle = (Bicycle)obj;
-
-                if (bicycle.IsChangingLane)
-                {
-                    labelStatus.Text = "Finish the current lane change first.";
-                    return;
-                }
-
-                InitializeBicycleMotionIfNeeded(bicycle);
                 changed = TryMoveBicycleToLane(bicycle,
                     bicycle.Lane + verticalDirection);
-
-                if (changed)
-                    BeginBicycleLaneChangeIfNeeded(bicycle);
             }
             else if (obj is Pedestrian)
             {
                 Pedestrian pedestrian = (Pedestrian)obj;
-
-                if (pedestrian.IsChangingLane)
-                {
-                    labelStatus.Text = "Finish the current lane change first.";
-                    return;
-                }
-
-                InitializePedestrianMotionIfNeeded(pedestrian);
                 changed = TryMovePedestrianToLane(pedestrian,
                     pedestrian.Lane + verticalDirection);
-
-                if (changed)
-                    BeginPedestrianLaneChangeIfNeeded(pedestrian);
             }
 
             if (changed)
                 labelStatus.Text = "Lane change started.";
+            else if (obj.IsChangingLane)
+                labelStatus.Text = "Finish the current lane change first.";
             else
                 labelStatus.Text = "Lane change is not available or the target lane is blocked.";
-        }
-
-        private void UpdateSmoothMotion()
-        {
-            for (int i = 0; i < trafficObjects.Count; i++)
-            {
-                TrafficObject obj = trafficObjects[i];
-
-                if (obj is Bicycle)
-                    UpdateBicycleSmoothMotion((Bicycle)obj);
-                else if (obj is Pedestrian)
-                    UpdatePedestrianSmoothMotion((Pedestrian)obj);
-            }
-        }
-
-        private void UpdateBicycleSmoothMotion(Bicycle bicycle)
-        {
-            InitializeBicycleMotionIfNeeded(bicycle);
-            BeginBicycleLaneChangeIfNeeded(bicycle);
-            AdvanceBicycleLaneChange(bicycle);
-            ApplyBicycleGradualSpeed(bicycle);
-        }
-
-        private void InitializeBicycleMotionIfNeeded(Bicycle bicycle)
-        {
-            if (bicycle.MotionInitialized)
-                return;
-
-            bicycle.MotionSpeed = bicycle.ActualSpeed;
-            bicycle.MotionBrakeTickCounter = 0;
-            bicycle.PreviousMotionY = bicycle.Y;
-            bicycle.IsChangingLane = false;
-            bicycle.LaneChangeTargetY = bicycle.Y;
-            bicycle.LaneChangeTargetLane = bicycle.Lane;
-            bicycle.MotionInitialized = true;
-        }
-
-        private void BeginBicycleLaneChangeIfNeeded(Bicycle bicycle)
-        {
-            InitializeBicycleMotionIfNeeded(bicycle);
-
-            if (bicycle.IsChangingLane)
-            {
-                if (bicycle.Y != bicycle.PreviousMotionY)
-                    bicycle.Y = bicycle.PreviousMotionY;
-
-                if (bicycle.Lane != bicycle.LaneChangeTargetLane)
-                    bicycle.Lane = bicycle.LaneChangeTargetLane;
-
-                return;
-            }
-
-            if (bicycle.Y == bicycle.PreviousMotionY)
-                return;
-
-            bicycle.LaneChangeTargetY = bicycle.Y;
-            bicycle.LaneChangeTargetLane = bicycle.Lane;
-            bicycle.Y = bicycle.PreviousMotionY;
-            bicycle.IsChangingLane = true;
-        }
-
-        private void AdvanceBicycleLaneChange(Bicycle bicycle)
-        {
-            if (!bicycle.IsChangingLane)
-            {
-                bicycle.PreviousMotionY = bicycle.Y;
-                return;
-            }
-
-            int nextY = bicycle.Y;
-
-            if (bicycle.Y < bicycle.LaneChangeTargetY)
-            {
-                nextY += BikeLaneChangeStep;
-
-                if (nextY > bicycle.LaneChangeTargetY)
-                    nextY = bicycle.LaneChangeTargetY;
-            }
-            else if (bicycle.Y > bicycle.LaneChangeTargetY)
-            {
-                nextY -= BikeLaneChangeStep;
-
-                if (nextY < bicycle.LaneChangeTargetY)
-                    nextY = bicycle.LaneChangeTargetY;
-            }
-
-            Rectangle nextBounds = new Rectangle(bicycle.X, nextY,
-                bicycle.Width, bicycle.Height);
-
-            if (trafficObjects.IsAreaFree(nextBounds, bicycle))
-                bicycle.Y = nextY;
-
-            bicycle.PreviousMotionY = bicycle.Y;
-
-            if (bicycle.Y == bicycle.LaneChangeTargetY)
-                bicycle.IsChangingLane = false;
-        }
-
-        private void ApplyBicycleGradualSpeed(Bicycle bicycle)
-        {
-            int targetSpeed = bicycle.ActualSpeed;
-
-            if (bicycle.MotionSpeed <= targetSpeed)
-            {
-                bicycle.MotionSpeed = targetSpeed;
-                bicycle.MotionBrakeTickCounter = 0;
-                return;
-            }
-
-            bicycle.MotionBrakeTickCounter++;
-            int smoothSpeed = bicycle.MotionSpeed;
-
-            if (bicycle.MotionBrakeTickCounter >= BikeBrakeTickDelay)
-            {
-                bicycle.MotionBrakeTickCounter = 0;
-                smoothSpeed--;
-            }
-
-            if (smoothSpeed < targetSpeed)
-                smoothSpeed = targetSpeed;
-
-            int extraSpeed = smoothSpeed - targetSpeed;
-            int plannedExtraSpeed = extraSpeed;
-
-            while (extraSpeed > 0 &&
-                !trafficObjects.IsAreaFree(GetMovedBounds(bicycle, extraSpeed),
-                    bicycle))
-            {
-                extraSpeed--;
-            }
-
-            if (extraSpeed < plannedExtraSpeed)
-            {
-                smoothSpeed = targetSpeed + extraSpeed;
-                bicycle.MotionBrakeTickCounter = 0;
-            }
-
-            if (extraSpeed > 0)
-            {
-                bicycle.ActualSpeed = extraSpeed;
-                bicycle.Move();
-            }
-
-            bicycle.ActualSpeed = smoothSpeed;
-            bicycle.MotionSpeed = smoothSpeed;
-        }
-
-        private void UpdatePedestrianSmoothMotion(Pedestrian pedestrian)
-        {
-            InitializePedestrianMotionIfNeeded(pedestrian);
-            BeginPedestrianLaneChangeIfNeeded(pedestrian);
-            AdvancePedestrianLaneChange(pedestrian);
-            ApplyPedestrianGradualSpeed(pedestrian);
-        }
-
-        private void InitializePedestrianMotionIfNeeded(Pedestrian pedestrian)
-        {
-            if (pedestrian.MotionInitialized)
-                return;
-
-            pedestrian.MotionSpeed = pedestrian.ActualSpeed;
-            pedestrian.MotionBrakeTickCounter = 0;
-            pedestrian.PreviousMotionY = pedestrian.Y;
-            pedestrian.IsChangingLane = false;
-            pedestrian.LaneChangeTargetY = pedestrian.Y;
-            pedestrian.LaneChangeTargetLane = pedestrian.Lane;
-            pedestrian.MotionInitialized = true;
-        }
-
-        private void BeginPedestrianLaneChangeIfNeeded(Pedestrian pedestrian)
-        {
-            InitializePedestrianMotionIfNeeded(pedestrian);
-
-            if (pedestrian.IsChangingLane)
-            {
-                if (pedestrian.Y != pedestrian.PreviousMotionY)
-                    pedestrian.Y = pedestrian.PreviousMotionY;
-
-                if (pedestrian.Lane != pedestrian.LaneChangeTargetLane)
-                    pedestrian.Lane = pedestrian.LaneChangeTargetLane;
-
-                return;
-            }
-
-            if (pedestrian.Y == pedestrian.PreviousMotionY)
-                return;
-
-            pedestrian.LaneChangeTargetY = pedestrian.Y;
-            pedestrian.LaneChangeTargetLane = pedestrian.Lane;
-            pedestrian.Y = pedestrian.PreviousMotionY;
-            pedestrian.IsChangingLane = true;
-        }
-
-        private void AdvancePedestrianLaneChange(Pedestrian pedestrian)
-        {
-            if (!pedestrian.IsChangingLane)
-            {
-                pedestrian.PreviousMotionY = pedestrian.Y;
-                return;
-            }
-
-            int nextY = pedestrian.Y;
-
-            if (pedestrian.Y < pedestrian.LaneChangeTargetY)
-            {
-                nextY += PedestrianLaneChangeStep;
-
-                if (nextY > pedestrian.LaneChangeTargetY)
-                    nextY = pedestrian.LaneChangeTargetY;
-            }
-            else if (pedestrian.Y > pedestrian.LaneChangeTargetY)
-            {
-                nextY -= PedestrianLaneChangeStep;
-
-                if (nextY < pedestrian.LaneChangeTargetY)
-                    nextY = pedestrian.LaneChangeTargetY;
-            }
-
-            Rectangle nextBounds = new Rectangle(pedestrian.X, nextY,
-                pedestrian.Width, pedestrian.Height);
-
-            if (trafficObjects.IsAreaFree(nextBounds, pedestrian))
-                pedestrian.Y = nextY;
-
-            pedestrian.PreviousMotionY = pedestrian.Y;
-
-            if (pedestrian.Y == pedestrian.LaneChangeTargetY)
-                pedestrian.IsChangingLane = false;
-        }
-
-        private void ApplyPedestrianGradualSpeed(Pedestrian pedestrian)
-        {
-            int targetSpeed = pedestrian.ActualSpeed;
-
-            if (pedestrian.MotionSpeed <= targetSpeed)
-            {
-                pedestrian.MotionSpeed = targetSpeed;
-                pedestrian.MotionBrakeTickCounter = 0;
-                return;
-            }
-
-            pedestrian.MotionBrakeTickCounter++;
-            int smoothSpeed = pedestrian.MotionSpeed;
-
-            if (pedestrian.MotionBrakeTickCounter >= PedestrianBrakeTickDelay)
-            {
-                pedestrian.MotionBrakeTickCounter = 0;
-                smoothSpeed--;
-            }
-
-            if (smoothSpeed < targetSpeed)
-                smoothSpeed = targetSpeed;
-
-            int extraSpeed = smoothSpeed - targetSpeed;
-            int plannedExtraSpeed = extraSpeed;
-
-            while (extraSpeed > 0 &&
-                !trafficObjects.IsAreaFree(GetMovedBounds(pedestrian, extraSpeed),
-                    pedestrian))
-            {
-                extraSpeed--;
-            }
-
-            if (extraSpeed < plannedExtraSpeed)
-            {
-                smoothSpeed = targetSpeed + extraSpeed;
-                pedestrian.MotionBrakeTickCounter = 0;
-            }
-
-            if (extraSpeed > 0)
-            {
-                pedestrian.ActualSpeed = extraSpeed;
-                pedestrian.Move();
-            }
-
-            pedestrian.ActualSpeed = smoothSpeed;
-            pedestrian.MotionSpeed = smoothSpeed;
         }
     }
 }

@@ -349,7 +349,7 @@ namespace TheSharpTurn
 
             if (e.KeyCode == Keys.W || e.KeyCode == Keys.Up)
             {
-                if (manualObject.DesiredSpeed < GetMaximumSpeed(manualObject))
+                if (manualObject.DesiredSpeed < manualObject.MaximumSpeed)
                     manualObject.DesiredSpeed++;
 
                 labelStatus.Text = "Desired speed increased.";
@@ -367,25 +367,10 @@ namespace TheSharpTurn
             {
                 manualObject.DesiredSpeed = 0;
 
-                if (manualObject is RoadUser)
-                {
-                    labelStatus.Text = "Braking to stop.";
-                }
-                else if (manualObject is Bicycle)
-                {
-                    manualObject.ActualSpeed = 0;
-                    labelStatus.Text = "Braking to stop.";
-                }
-                else if (manualObject is Pedestrian)
-                {
-                    manualObject.ActualSpeed = 0;
+                if (manualObject is Pedestrian)
                     labelStatus.Text = "Slowing to stop.";
-                }
                 else
-                {
-                    manualObject.ActualSpeed = 0;
-                    labelStatus.Text = "Object stopped.";
-                }
+                    labelStatus.Text = "Braking to stop.";
 
                 e.Handled = true;
             }
@@ -417,17 +402,6 @@ namespace TheSharpTurn
 
             UpdateSelectedInfo();
             pictureBoxMap.Invalidate();
-        }
-
-        private int GetMaximumSpeed(TrafficObject obj)
-        {
-            if (obj is Bicycle)
-                return 3;
-
-            if (obj is Pedestrian)
-                return 2;
-
-            return 5;
         }
 
         private void buttonDelete_Click(object sender, EventArgs e)

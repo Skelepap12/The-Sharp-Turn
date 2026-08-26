@@ -14,6 +14,9 @@ namespace TheSharpTurn
         int actualSpeed;
         int width;
         int height;
+        int brakeTickCounter;
+        bool isChangingLane;
+        int laneChangeTargetY;
 
         public TrafficObject()
             : this(0, 0, 0, TravelDirection.Right, 0, 0, 1, 1)
@@ -31,6 +34,9 @@ namespace TheSharpTurn
             ActualSpeed = actualSpeedVal;
             Width = widthVal;
             Height = heightVal;
+            BrakeTickCounter = 0;
+            IsChangingLane = false;
+            LaneChangeTargetY = Y;
         }
 
         public int X
@@ -141,12 +147,56 @@ namespace TheSharpTurn
             }
         }
 
+        public int BrakeTickCounter
+        {
+            get
+            {
+                return brakeTickCounter;
+            }
+            set
+            {
+                if (value < 0)
+                    brakeTickCounter = 0;
+                else
+                    brakeTickCounter = value;
+            }
+        }
+
+        public bool IsChangingLane
+        {
+            get
+            {
+                return isChangingLane;
+            }
+            set
+            {
+                isChangingLane = value;
+            }
+        }
+
+        public int LaneChangeTargetY
+        {
+            get
+            {
+                return laneChangeTargetY;
+            }
+            set
+            {
+                laneChangeTargetY = value;
+            }
+        }
+
         public Rectangle Bounds
         {
             get
             {
                 return new Rectangle(X, Y, Width, Height);
             }
+        }
+
+        public abstract int MaximumSpeed
+        {
+            get;
         }
 
         public virtual void Move()

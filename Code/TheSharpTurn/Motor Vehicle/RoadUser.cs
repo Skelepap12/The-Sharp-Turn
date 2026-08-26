@@ -7,18 +7,12 @@ namespace TheSharpTurn
     {
         int overtakeReturnLane;
         bool isOvertaking;
-        bool isChangingLane;
-        int laneChangeTargetY;
-        int brakeTickCounter;
 
         public RoadUser()
             : base()
         {
             OvertakeReturnLane = -1;
             IsOvertaking = false;
-            IsChangingLane = false;
-            LaneChangeTargetY = Y;
-            BrakeTickCounter = 0;
         }
 
         public RoadUser(int xVal, int yVal, int laneVal,
@@ -29,9 +23,6 @@ namespace TheSharpTurn
         {
             OvertakeReturnLane = -1;
             IsOvertaking = false;
-            IsChangingLane = false;
-            LaneChangeTargetY = Y;
-            BrakeTickCounter = 0;
         }
 
         public int OvertakeReturnLane
@@ -58,42 +49,11 @@ namespace TheSharpTurn
             }
         }
 
-        public bool IsChangingLane
+        public override int MaximumSpeed
         {
             get
             {
-                return isChangingLane;
-            }
-            set
-            {
-                isChangingLane = value;
-            }
-        }
-
-        public int LaneChangeTargetY
-        {
-            get
-            {
-                return laneChangeTargetY;
-            }
-            set
-            {
-                laneChangeTargetY = value;
-            }
-        }
-
-        public int BrakeTickCounter
-        {
-            get
-            {
-                return brakeTickCounter;
-            }
-            set
-            {
-                if (value < 0)
-                    brakeTickCounter = 0;
-                else
-                    brakeTickCounter = value;
+                return 5;
             }
         }
     }
