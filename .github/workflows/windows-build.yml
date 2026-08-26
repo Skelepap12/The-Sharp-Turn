@@ -7,6 +7,9 @@ on:
   pull_request:
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: windows-latest
@@ -14,6 +17,9 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Apply Phase 7 cleanup
+        run: python Tools\apply_phase7_cleanup.py
 
       - name: Set up MSBuild
         uses: microsoft/setup-msbuild@v2
@@ -55,3 +61,15 @@ jobs:
         with:
           name: TheSharpTurn-Debug
           path: Code\TheSharpTurn\bin\Debug\
+
+      - name: Commit verified cleanup
+        if: success()
+        shell: powershell
+        run: |
+          git config user.name "Michael"
+          git config user.email "mmichaeli2004@gmail.com"
+          git add -A
+          if (git status --porcelain) {
+            git commit -m "Refine passing controls folders and audio assets"
+            git push
+          }
