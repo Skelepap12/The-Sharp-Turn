@@ -4,10 +4,10 @@ Phase 7 audio stays simple and course-level: `System.Media.SoundPlayer` with WAV
 
 ## Selected source pages
 
-- `car_engine_loop.wav` - passenger-car engine loop. We can use one of the CC0 loops from OpenGameArt, **racing car engine sound loops** by domasx2, as the car candidate. Source: https://opengameart.org/content/racing-car-engine-sound-loops
-- `bus_engine_loop.wav` - heavier/lower bus engine loop. Select a fitting CC0 WAV before final integration.
-- `motorcycle_engine_loop.wav` - motorcycle engine loop. Select a fitting CC0 WAV before final integration.
-- `emergency_engine_loop.wav` - emergency-vehicle engine loop when the siren is off. Select a fitting CC0 WAV before final integration.
+- `car_engine_loop.wav` - OpenGameArt, **racing car engine sound loops** by domasx2, CC0. Use one of the supplied WAV loop variants as the passenger-car engine. Source: https://opengameart.org/content/racing-car-engine-sound-loops
+- `bus_engine_loop.wav` - Freesound, **busSnd_002.wav** by tec_studio, CC0. It is a short recording of a USA transit-bus engine and is already a WAV file, so it fits the bus sound well without conversion. Source: https://freesound.org/people/tec_studio/sounds/107273/
+- `motorcycle_engine_loop.wav` - Freesound, **motorcycle_20** by Lauri_Lehtonen, CC0. It is a five-second mono WAV of a motorcycle idling and is compact enough for the project. Source: https://freesound.org/people/Lauri_Lehtonen/sounds/714062/
+- `emergency_engine_loop.wav` - Freesound, **Fire Truck - Idle** by Filmscore, CC0. It is a WAV recording of a parked fire-truck engine and gives the emergency class a heavier sound than normal cars when the siren is off. Source: https://freesound.org/people/Filmscore/sounds/268526/
 - `car_horn.wav` - OpenGameArt, **Car signal** by Yaroslav_Novikov, CC0 (`car2.wav`). Source: https://opengameart.org/content/car-signal
 - `siren.wav` - Freesound, **police siren.wav** by vlammenos, CC0, loopable WAV. Source: https://freesound.org/people/vlammenos/sounds/52906/
 - `bike_horn.wav` - OpenGameArt, **Bicycle Horn** by AntumDeluge, CC0 (`bicycle-horn-1.wav`). Source: https://opengameart.org/content/bicycle-horn
@@ -43,5 +43,9 @@ The chosen WAV files should be renamed to the exact names below before they are 
 - Manual pedestrians use a walking loop; `H` temporarily plays the shout.
 - If an audio file is missing, the simulator keeps running normally without that sound.
 - No pitch shifting, spatial audio, audio engine, mixer framework, or multithreading is used.
+
+## Download note
+
+The OpenGameArt files can be downloaded directly from their pages. Freesound requires signing in before downloading the original file. After download, keep the chosen sound as WAV and rename it to the runtime filename above. If a source does not loop cleanly in testing, trim a steady middle section in a basic audio editor rather than adding any new audio framework to the project.
 
 The project copies WAV files from `Assets/Audio/` into the build output when they are present.
