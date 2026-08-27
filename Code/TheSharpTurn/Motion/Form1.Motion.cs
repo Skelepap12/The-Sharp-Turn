@@ -9,6 +9,7 @@ namespace TheSharpTurn
         const int RoadBrakeTickDelay = 2;
         const int RoadMergeRearClearance = 32;
         const int RoadLaneChangePadding = 16;
+        const int RoadFollowingReleaseBuffer = 16;
 
         const int BikeLaneChangeStep = 4;
         const int BikeBrakeTickDelay = 2;
@@ -127,6 +128,8 @@ namespace TheSharpTurn
                 {
                     int gap = GetForwardGap(roadUser, blocker);
                     int safeDistance = GetRoadBrakingDistance(roadUser);
+                    int releaseDistance = safeDistance +
+                        RoadFollowingReleaseBuffer;
                     bool blockerIsSlower = blocker.ActualSpeed < roadUser.DesiredSpeed ||
                         blocker.DesiredSpeed < roadUser.DesiredSpeed;
 
@@ -144,6 +147,12 @@ namespace TheSharpTurn
                             followSpeed--;
 
                         MoveAtBestSpeed(roadUser, followSpeed);
+                        return;
+                    }
+
+                    if (gap <= releaseDistance)
+                    {
+                        MoveAtBestSpeed(roadUser, blocker.ActualSpeed);
                         return;
                     }
                 }
@@ -199,7 +208,7 @@ namespace TheSharpTurn
 
         private int GetRoadBrakingDistance(RoadUser roadUser)
         {
-            return 12 + roadUser.ActualSpeed * 8;
+            return 12 + roadUser.DesiredSpeed * 8;
         }
 
         private bool TryMaintainRoadFollowingDistance(RoadUser roadUser)
@@ -211,8 +220,9 @@ namespace TheSharpTurn
 
             int gap = GetForwardGap(roadUser, blocker);
             int safeDistance = GetRoadBrakingDistance(roadUser);
+            int releaseDistance = safeDistance + RoadFollowingReleaseBuffer;
 
-            if (gap > safeDistance)
+            if (gap > releaseDistance)
                 return false;
 
             int followSpeed = blocker.ActualSpeed;
