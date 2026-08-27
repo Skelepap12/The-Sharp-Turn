@@ -57,23 +57,25 @@ namespace TheSharpTurn
 
             panelFocusMode = new Panel();
             panelFocusMode.Name = "panelFocusMode";
-            panelFocusMode.Size = new Size(410, 126);
+            panelFocusMode.Size = new Size(760, 72);
             panelFocusMode.BackColor = Color.FromArgb(40, 40, 40);
             panelFocusMode.BorderStyle = BorderStyle.FixedSingle;
             panelFocusMode.Visible = false;
 
             labelFocusModeTitle = new Label();
-            labelFocusModeTitle.Location = new Point(12, 10);
-            labelFocusModeTitle.Size = new Size(384, 24);
+            labelFocusModeTitle.Location = new Point(14, 10);
+            labelFocusModeTitle.Size = new Size(190, 50);
             labelFocusModeTitle.Font = new Font("Segoe UI", 11F, FontStyle.Bold);
             labelFocusModeTitle.ForeColor = Color.White;
+            labelFocusModeTitle.TextAlign = ContentAlignment.MiddleLeft;
             labelFocusModeTitle.Text = "DRIVE MODE";
 
             labelFocusModeInstructions = new Label();
-            labelFocusModeInstructions.Location = new Point(12, 38);
-            labelFocusModeInstructions.Size = new Size(384, 76);
+            labelFocusModeInstructions.Location = new Point(210, 8);
+            labelFocusModeInstructions.Size = new Size(536, 54);
             labelFocusModeInstructions.Font = new Font("Segoe UI", 9F, FontStyle.Regular);
             labelFocusModeInstructions.ForeColor = Color.White;
+            labelFocusModeInstructions.TextAlign = ContentAlignment.MiddleLeft;
 
             panelFocusMode.Controls.Add(labelFocusModeTitle);
             panelFocusMode.Controls.Add(labelFocusModeInstructions);
@@ -275,37 +277,29 @@ namespace TheSharpTurn
             {
                 labelFocusModeTitle.Text = "EMERGENCY DRIVE MODE";
                 labelFocusModeInstructions.Text =
-                    "W / Up: Speed up     S / Down: Slow down\r\n" +
-                    "A / Left: Move left  D / Right: Move right\r\n" +
-                    "Space: Brake         H: Toggle siren\r\n" +
-                    "Esc or any mouse click on the map: Exit";
+                    "W / Up: Speed up   S / Down: Slow down   A / Left: Move left   D / Right: Move right\r\n" +
+                    "Space: Brake   H: Toggle siren   Esc or any mouse click on the map: Exit";
             }
             else if (manualObject is Bicycle)
             {
                 labelFocusModeTitle.Text = "CYCLE MODE";
                 labelFocusModeInstructions.Text =
-                    "W / Up: Speed up     S / Down: Slow down\r\n" +
-                    "A / Left: Move left  D / Right: Move right\r\n" +
-                    "Space: Brake         H: Bike horn\r\n" +
-                    "Esc or any mouse click on the map: Exit";
+                    "W / Up: Speed up   S / Down: Slow down   A / Left: Move left   D / Right: Move right\r\n" +
+                    "Space: Brake   H: Bike horn   Esc or any mouse click on the map: Exit";
             }
             else if (manualObject is Pedestrian)
             {
                 labelFocusModeTitle.Text = "WALK MODE";
                 labelFocusModeInstructions.Text =
-                    "W / Up: Speed up     S / Down: Slow down\r\n" +
-                    "A / Left: Move left  D / Right: Move right\r\n" +
-                    "Space: Stop          H: Shout\r\n" +
-                    "Esc or any mouse click on the map: Exit";
+                    "W / Up: Speed up   S / Down: Slow down   A / Left: Move left   D / Right: Move right\r\n" +
+                    "Space: Stop   H: Shout   Esc or any mouse click on the map: Exit";
             }
             else
             {
                 labelFocusModeTitle.Text = "DRIVE MODE";
                 labelFocusModeInstructions.Text =
-                    "W / Up: Speed up     S / Down: Slow down\r\n" +
-                    "A / Left: Move left  D / Right: Move right\r\n" +
-                    "Space: Brake         H: Horn\r\n" +
-                    "Esc or any mouse click on the map: Exit";
+                    "W / Up: Speed up   S / Down: Slow down   A / Left: Move left   D / Right: Move right\r\n" +
+                    "Space: Brake   H: Horn   Esc or any mouse click on the map: Exit";
             }
         }
 
@@ -378,14 +372,39 @@ namespace TheSharpTurn
         private void UpdateFocusModeLayout()
         {
             const int Margin = 12;
+            const int HeaderHeight = 72;
+            const int HeaderGap = 8;
 
-            pictureBoxDisplay.Location = new Point(Margin, Margin);
+            int headerWidth = this.ClientSize.Width - Margin * 2;
+
+            if (headerWidth < 300)
+                headerWidth = 300;
+
+            panelFocusMode.Location = new Point(Margin, Margin);
+            panelFocusMode.Size = new Size(headerWidth, HeaderHeight);
+
+            labelFocusModeTitle.Location = new Point(14, 10);
+            labelFocusModeTitle.Size = new Size(190, 50);
+            labelFocusModeInstructions.Location = new Point(210, 8);
+
+            int instructionsWidth = panelFocusMode.ClientSize.Width - 222;
+            if (instructionsWidth < 100)
+                instructionsWidth = 100;
+
+            labelFocusModeInstructions.Size = new Size(instructionsWidth, 54);
+
+            int mapTop = Margin + HeaderHeight + HeaderGap;
+            int mapHeight = this.ClientSize.Height - mapTop - Margin;
+
+            if (mapHeight < 100)
+                mapHeight = 100;
+
+            pictureBoxDisplay.Location = new Point(Margin, mapTop);
             pictureBoxDisplay.Size = new Size(
                 this.ClientSize.Width - Margin * 2,
-                this.ClientSize.Height - Margin * 2);
+                mapHeight);
 
-            panelFocusMode.Location = new Point(pictureBoxDisplay.Left + 12,
-                pictureBoxDisplay.Top + 12);
+            pictureBoxDisplay.SendToBack();
             panelFocusMode.BringToFront();
         }
     }
