@@ -15,9 +15,9 @@ namespace TheSharpTurn
         const int BikeBrakeTickDelay = 2;
         const int BikeFollowingDistance = 18;
         const int BikePassClearance = 20;
-        const int BikeOncomingClearance = 140;
+        const int BikeOncomingClearance = 240;
         const int BikeHeadOnDistance = 60;
-        const int BikeOvertakeSectionDistance = 140;
+        const int BikeOvertakeSectionDistance = 280;
         const int BikeLaneChangePadding = 12;
 
         const int PedestrianLaneChangeStep = 6;
@@ -645,7 +645,7 @@ namespace TheSharpTurn
                     int otherCenter = other.X + other.Width / 2;
 
                     if (Math.Abs(otherCenter - bicycleCenter) <
-                        BikeOncomingClearance)
+                        BikeHeadOnDistance)
                         return false;
                 }
             }
@@ -805,26 +805,61 @@ namespace TheSharpTurn
                 return;
             }
 
-            int keepRightLane = GetPedestrianKeepRightLane(pedestrian);
-
-            if (pedestrian.Lane != keepRightLane)
+            if (pedestrian.IsOvertaking)
             {
-                Pedestrian passedPedestrian = FindPedestrianBehindInLane(
-                    pedestrian, keepRightLane, true);
-                Pedestrian pedestrianAheadInKeepRight =
-                    FindPedestrianAheadInLane(pedestrian, keepRightLane,
-                        true);
-
-                bool rearClear = passedPedestrian == null ||
-                    GetRearGap(pedestrian, passedPedestrian) >=
-                    PedestrianPassClearance;
-                bool frontClear = pedestrianAheadInKeepRight == null ||
-                    GetForwardGap(pedestrian, pedestrianAheadInKeepRight) >
-                    PedestrianFollowingDistance;
-
-                if (rearClear && frontClear &&
-                    TryMovePedestrianToLane(pedestrian, keepRightLane))
+                if (pedestrian.Lane == pedestrian.OvertakeReturnLane)
                 {
+                    pedestrian.IsOvertaking = false;
+                    pedestrian.OvertakeReturnLane = -1;
+                }
+                else
+                {
+                    Pedestrian passedPedestrian = FindPedestrianBehindInLane(
+                        pedestrian, pedestrian.OvertakeReturnLane, true);
+                    Pedestrian returnLaneBlocker = FindPedestrianAheadInLane(
+                        pedestrian, pedestrian.OvertakeReturnLane, true);
+
+                    bool rearClear = passedPedestrian == null ||
+                        GetRearGap(pedestrian, passedPedestrian) >=
+                        PedestrianPassClearance;
+                    bool frontClear = returnLaneBlocker == null ||
+                        GetForwardGap(pedestrian, returnLaneBlocker) >
+                        PedestrianFollowingDistance;
+
+                    if (rearClear && frontClear &&
+                        TryMovePedestrianToLane(pedestrian,
+                            pedestrian.OvertakeReturnLane))
+                    {
+                        pedestrian.IsOvertaking = false;
+                        pedestrian.OvertakeReturnLane = -1;
+                        MoveAtBestSpeed(pedestrian);
+                        return;
+                    }
+
+                    Pedestrian oncomingWhilePassing =
+                        FindPedestrianAheadInLane(pedestrian,
+                            pedestrian.Lane, false);
+
+                    if (oncomingWhilePassing != null &&
+                        GetForwardGap(pedestrian, oncomingWhilePassing) <=
+                        PedestrianHeadOnDistance)
+                    {
+                        if (TryMovePedestrianToLane(pedestrian,
+                            pedestrian.OvertakeReturnLane))
+                        {
+                            pedestrian.IsOvertaking = false;
+                            pedestrian.OvertakeReturnLane = -1;
+                            MoveAtBestSpeed(pedestrian);
+                            return;
+                        }
+
+                        MoveAtBestSpeed(pedestrian, 0);
+                        return;
+                    }
+
+                    if (TryMaintainPedestrianFollowingDistance(pedestrian))
+                        return;
+
                     MoveAtBestSpeed(pedestrian);
                     return;
                 }
@@ -842,12 +877,18 @@ namespace TheSharpTurn
 
                 if (gap <= PedestrianFollowingDistance)
                 {
-                    if (blockerIsSlower && pedestrian.Lane == keepRightLane &&
-                        TryMovePedestrianToLane(pedestrian,
-                            GetPairedPedestrianLane(pedestrian.Lane)))
+                    if (blockerIsSlower)
                     {
-                        MoveAtBestSpeed(pedestrian);
-                        return;
+                        int returnLane = pedestrian.Lane;
+                        int passingLane = GetPairedPedestrianLane(returnLane);
+
+                        if (TryMovePedestrianToLane(pedestrian, passingLane))
+                        {
+                            pedestrian.IsOvertaking = true;
+                            pedestrian.OvertakeReturnLane = returnLane;
+                            MoveAtBestSpeed(pedestrian);
+                            return;
+                        }
                     }
 
                     int followSpeed = sameDirectionBlocker.ActualSpeed;
@@ -868,6 +909,8 @@ namespace TheSharpTurn
                 GetForwardGap(pedestrian, oncoming) <=
                 PedestrianHeadOnDistance)
             {
+                int keepRightLane = GetPedestrianKeepRightLane(pedestrian);
+
                 if (pedestrian.Lane != keepRightLane &&
                     TryMovePedestrianToLane(pedestrian, keepRightLane))
                 {
@@ -1356,6 +1399,12 @@ namespace TheSharpTurn
                 InitializePedestrianMotionIfNeeded(pedestrian);
                 changed = TryMovePedestrianToLane(pedestrian,
                     pedestrian.Lane + verticalDirection);
+
+                if (changed)
+                {
+                    pedestrian.IsOvertaking = false;
+                    pedestrian.OvertakeReturnLane = -1;
+                }
             }
 
             if (changed)
