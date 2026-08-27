@@ -23,6 +23,7 @@ namespace TheSharpTurn
         const int PedestrianLaneChangeStep = 6;
         const int PedestrianBrakeTickDelay = 2;
         const int PedestrianFollowingDistance = 10;
+        const int PedestrianOvertakeDistance = 30;
         const int PedestrianPassClearance = 12;
         const int PedestrianHeadOnDistance = 20;
         const int PedestrianLaneChangeClearance = 24;
@@ -875,22 +876,22 @@ namespace TheSharpTurn
                     sameDirectionBlocker.ActualSpeed < pedestrian.DesiredSpeed ||
                     sameDirectionBlocker.DesiredSpeed < pedestrian.DesiredSpeed;
 
+                if (blockerIsSlower && gap <= PedestrianOvertakeDistance)
+                {
+                    int returnLane = pedestrian.Lane;
+                    int passingLane = GetPairedPedestrianLane(returnLane);
+
+                    if (TryMovePedestrianToLane(pedestrian, passingLane))
+                    {
+                        pedestrian.IsOvertaking = true;
+                        pedestrian.OvertakeReturnLane = returnLane;
+                        MoveAtBestSpeed(pedestrian);
+                        return;
+                    }
+                }
+
                 if (gap <= PedestrianFollowingDistance)
                 {
-                    if (blockerIsSlower)
-                    {
-                        int returnLane = pedestrian.Lane;
-                        int passingLane = GetPairedPedestrianLane(returnLane);
-
-                        if (TryMovePedestrianToLane(pedestrian, passingLane))
-                        {
-                            pedestrian.IsOvertaking = true;
-                            pedestrian.OvertakeReturnLane = returnLane;
-                            MoveAtBestSpeed(pedestrian);
-                            return;
-                        }
-                    }
-
                     int followSpeed = sameDirectionBlocker.ActualSpeed;
 
                     if (gap < PedestrianFollowingDistance &&
