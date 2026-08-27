@@ -24,23 +24,12 @@ namespace TheSharpTurn
 
         const int PedestrianLaneChangeStep = 6;
         const int PedestrianBrakeTickDelay = 2;
-        const int PedestrianFollowingDistance = 10;
-        const int PedestrianOvertakeDistance = 30;
-        const int PedestrianPassClearance = 12;
-        const int PedestrianHeadOnDistance = 20;
-        const int PedestrianBidirectionalConflictDistance = 120;
-        const int PedestrianConflictReleaseDistance = 160;
-        const int PedestrianConflictCreepSpeed = 1;
-        const int PedestrianLaneChangeClearance = 24;
+        const int PedestrianFollowingDistance = 18;
+        const int PedestrianPassClearance = 16;
+        const int PedestrianOncomingClearance = 120;
+        const int PedestrianHeadOnDistance = 30;
+        const int PedestrianOvertakeSectionDistance = 160;
         const int PedestrianLaneChangePadding = 12;
-
-        bool upperPedestrianConflictActive;
-        TravelDirection upperPedestrianPriority;
-        int upperPedestrianConflictCenterX;
-
-        bool lowerPedestrianConflictActive;
-        TravelDirection lowerPedestrianPriority;
-        int lowerPedestrianConflictCenterX;
 
         bool bicycleConflictActive;
         TravelDirection bicyclePriority;
@@ -48,7 +37,7 @@ namespace TheSharpTurn
 
         private void simulationTimer_Tick(object sender, EventArgs e)
         {
-            UpdateBidirectionalConflictStates();
+            UpdateBicycleConflictState();
 
             for (int i = trafficObjects.Count - 1; i >= 0; i--)
             {
@@ -861,99 +850,84 @@ namespace TheSharpTurn
                 return;
             }
 
-            if (HandlePedestrianBidirectionalConflict(pedestrian))
-                return;
+            int correctLane = GetPedestrianCorrectLane(pedestrian);
 
-            if (pedestrian.IsOvertaking)
+            if (pedestrian.Lane != correctLane)
             {
-                if (pedestrian.Lane == pedestrian.OvertakeReturnLane)
+                Pedestrian oncoming = FindPedestrianAhead(pedestrian, false);
+                bool oncomingIsClose = oncoming != null &&
+                    GetForwardGap(pedestrian, oncoming) <=
+                    PedestrianHeadOnDistance;
+
+                Pedestrian passedPedestrian = FindPedestrianBehindInLane(
+                    pedestrian, correctLane, true);
+                Pedestrian pedestrianAheadInCorrectLane =
+                    FindPedestrianAheadInLane(pedestrian, correctLane, true);
+
+                bool rearClear = passedPedestrian == null ||
+                    GetRearGap(pedestrian, passedPedestrian) >=
+                    PedestrianPassClearance;
+                bool frontClear = pedestrianAheadInCorrectLane == null ||
+                    GetForwardGap(pedestrian, pedestrianAheadInCorrectLane) >
+                    PedestrianFollowingDistance;
+
+                if (rearClear && frontClear &&
+                    IsPedestrianReturnLaneSafe(pedestrian, correctLane,
+                        PedestrianPassClearance) &&
+                    TryMovePedestrianToLane(pedestrian, correctLane))
                 {
-                    pedestrian.IsOvertaking = false;
-                    pedestrian.OvertakeReturnLane = -1;
-                }
-                else
-                {
-                    Pedestrian passedPedestrian = FindPedestrianBehindInLane(
-                        pedestrian, pedestrian.OvertakeReturnLane, true);
-                    Pedestrian returnLaneBlocker = FindPedestrianAheadInLane(
-                        pedestrian, pedestrian.OvertakeReturnLane, true);
-
-                    bool rearClear = passedPedestrian == null ||
-                        GetRearGap(pedestrian, passedPedestrian) >=
-                        PedestrianPassClearance;
-                    bool frontClear = returnLaneBlocker == null ||
-                        GetForwardGap(pedestrian, returnLaneBlocker) >
-                        PedestrianFollowingDistance;
-
-                    if (rearClear && frontClear &&
-                        TryMovePedestrianToLane(pedestrian,
-                            pedestrian.OvertakeReturnLane))
-                    {
-                        pedestrian.IsOvertaking = false;
-                        pedestrian.OvertakeReturnLane = -1;
-                        MoveAtBestSpeed(pedestrian);
-                        return;
-                    }
-
-                    Pedestrian oncomingWhilePassing =
-                        FindPedestrianAheadInLane(pedestrian,
-                            pedestrian.Lane, false);
-
-                    if (oncomingWhilePassing != null &&
-                        GetForwardGap(pedestrian, oncomingWhilePassing) <=
-                        PedestrianHeadOnDistance)
-                    {
-                        if (TryMovePedestrianToLane(pedestrian,
-                            pedestrian.OvertakeReturnLane))
-                        {
-                            pedestrian.IsOvertaking = false;
-                            pedestrian.OvertakeReturnLane = -1;
-                            MoveAtBestSpeed(pedestrian);
-                            return;
-                        }
-
-                        MoveAtBestSpeed(pedestrian, 0);
-                        return;
-                    }
-
-                    if (TryMaintainPedestrianFollowingDistance(pedestrian))
-                        return;
-
                     MoveAtBestSpeed(pedestrian);
                     return;
                 }
-            }
 
-            Pedestrian sameDirectionBlocker = FindPedestrianAheadInLane(
-                pedestrian, pedestrian.Lane, true);
-
-            if (sameDirectionBlocker != null)
-            {
-                int gap = GetForwardGap(pedestrian, sameDirectionBlocker);
-                bool blockerIsSlower =
-                    sameDirectionBlocker.ActualSpeed < pedestrian.DesiredSpeed ||
-                    sameDirectionBlocker.DesiredSpeed < pedestrian.DesiredSpeed;
-
-                if (blockerIsSlower && gap <= PedestrianOvertakeDistance)
+                if (oncomingIsClose)
                 {
-                    int returnLane = pedestrian.Lane;
-                    int passingLane = GetPairedPedestrianLane(returnLane);
-
-                    if (TryMovePedestrianToLane(pedestrian, passingLane))
+                    if (IsPedestrianReturnLaneSafe(pedestrian, correctLane,
+                        PedestrianFollowingDistance) &&
+                        TryMovePedestrianToLane(pedestrian, correctLane))
                     {
-                        pedestrian.IsOvertaking = true;
-                        pedestrian.OvertakeReturnLane = returnLane;
                         MoveAtBestSpeed(pedestrian);
                         return;
                     }
+
+                    MoveAtBestSpeed(pedestrian, 0);
+                    return;
                 }
+
+                if (TryMaintainPedestrianFollowingDistance(pedestrian))
+                    return;
+
+                MoveAtBestSpeed(pedestrian);
+                return;
+            }
+
+            Pedestrian blocker = FindPedestrianAhead(pedestrian, true);
+
+            if (blocker != null)
+            {
+                int gap = GetForwardGap(pedestrian, blocker);
+                bool blockerIsSlower = blocker.ActualSpeed < pedestrian.DesiredSpeed ||
+                    blocker.DesiredSpeed < pedestrian.DesiredSpeed;
 
                 if (gap <= PedestrianFollowingDistance)
                 {
-                    int followSpeed = sameDirectionBlocker.ActualSpeed;
+                    if (blockerIsSlower)
+                    {
+                        int passingLane = GetPairedPedestrianLane(correctLane);
 
-                    if (gap < PedestrianFollowingDistance &&
-                        followSpeed > 0)
+                        if (!IsNearbyPedestrianOvertakeActive(pedestrian) &&
+                            IsPedestrianPassingLaneSafe(pedestrian,
+                                passingLane) &&
+                            TryMovePedestrianToLane(pedestrian, passingLane))
+                        {
+                            MoveAtBestSpeed(pedestrian);
+                            return;
+                        }
+                    }
+
+                    int followSpeed = blocker.ActualSpeed;
+
+                    if (gap < PedestrianFollowingDistance && followSpeed > 0)
                         followSpeed--;
 
                     MoveAtBestSpeed(pedestrian, followSpeed);
@@ -961,22 +935,13 @@ namespace TheSharpTurn
                 }
             }
 
-            Pedestrian oncoming = FindPedestrianAheadInLane(pedestrian,
-                pedestrian.Lane, false);
+            Pedestrian wrongWayPedestrian = FindPedestrianAhead(pedestrian,
+                false);
 
-            if (oncoming != null &&
-                GetForwardGap(pedestrian, oncoming) <=
+            if (wrongWayPedestrian != null &&
+                GetForwardGap(pedestrian, wrongWayPedestrian) <=
                 PedestrianHeadOnDistance)
             {
-                int keepRightLane = GetPedestrianKeepRightLane(pedestrian);
-
-                if (pedestrian.Lane != keepRightLane &&
-                    TryMovePedestrianToLane(pedestrian, keepRightLane))
-                {
-                    MoveAtBestSpeed(pedestrian);
-                    return;
-                }
-
                 MoveAtBestSpeed(pedestrian, 0);
                 return;
             }
@@ -984,92 +949,26 @@ namespace TheSharpTurn
             MoveAtBestSpeed(pedestrian);
         }
 
-        private bool HandlePedestrianBidirectionalConflict(
-            Pedestrian pedestrian)
+        private int GetPedestrianCorrectLane(Pedestrian pedestrian)
         {
-            bool active;
-            TravelDirection priority;
-            int conflictCenterX;
-
-            GetPedestrianConflictState(pedestrian.Lane, out active,
-                out priority, out conflictCenterX);
-
-            if (!active)
-                return false;
-
-            int pedestrianCenter = pedestrian.X + pedestrian.Width / 2;
-
-            if (Math.Abs(pedestrianCenter - conflictCenterX) >
-                PedestrianConflictReleaseDistance)
-                return false;
-
-            pedestrian.IsOvertaking = false;
-            pedestrian.OvertakeReturnLane = -1;
-
-            int keepRightLane = GetPedestrianKeepRightLane(pedestrian);
-
-            if (pedestrian.Lane != keepRightLane)
+            if (pedestrian.Lane == 8 || pedestrian.Lane == 9)
             {
-                if (TryMovePedestrianToLane(pedestrian, keepRightLane))
-                {
-                    MoveAtBestSpeed(pedestrian,
-                        PedestrianConflictCreepSpeed);
-                    return true;
-                }
+                if (pedestrian.Direction == TravelDirection.Left)
+                    return 8;
 
-                MoveAtBestSpeed(pedestrian,
-                    PedestrianConflictCreepSpeed);
-                return true;
+                return 9;
             }
 
-            if (pedestrian.Direction != priority)
-            {
-                bool approaching =
-                    (pedestrian.Direction == TravelDirection.Right &&
-                        pedestrianCenter < conflictCenterX) ||
-                    (pedestrian.Direction == TravelDirection.Left &&
-                        pedestrianCenter > conflictCenterX);
+            if (pedestrian.Direction == TravelDirection.Left)
+                return 10;
 
-                if (approaching)
-                {
-                    MoveAtBestSpeed(pedestrian, 0);
-                    return true;
-                }
-
-                MoveAtBestSpeed(pedestrian,
-                    PedestrianConflictCreepSpeed);
-                return true;
-            }
-
-            if (TryMaintainPedestrianFollowingDistance(pedestrian))
-                return true;
-
-            MoveAtBestSpeed(pedestrian);
-            return true;
-        }
-
-        private void GetPedestrianConflictState(int lane, out bool active,
-            out TravelDirection priority, out int conflictCenterX)
-        {
-            if (lane == 8 || lane == 9)
-            {
-                active = upperPedestrianConflictActive;
-                priority = upperPedestrianPriority;
-                conflictCenterX = upperPedestrianConflictCenterX;
-            }
-            else
-            {
-                active = lowerPedestrianConflictActive;
-                priority = lowerPedestrianPriority;
-                conflictCenterX = lowerPedestrianConflictCenterX;
-            }
+            return 11;
         }
 
         private bool TryMaintainPedestrianFollowingDistance(
             Pedestrian pedestrian)
         {
-            Pedestrian blocker = FindPedestrianAheadInLane(pedestrian,
-                pedestrian.Lane, true);
+            Pedestrian blocker = FindPedestrianAhead(pedestrian, true);
 
             if (blocker == null)
                 return false;
@@ -1088,16 +987,87 @@ namespace TheSharpTurn
             return true;
         }
 
-        private Pedestrian FindPedestrianAhead(Pedestrian pedestrian)
+        private bool IsNearbyPedestrianOvertakeActive(Pedestrian pedestrian)
         {
-            Pedestrian sameDirection = FindPedestrianAheadInLane(pedestrian,
-                pedestrian.Lane, true);
+            int pedestrianCenter = pedestrian.X + pedestrian.Width / 2;
+            bool upperPair = pedestrian.Lane == 8 || pedestrian.Lane == 9;
 
-            if (sameDirection != null)
-                return sameDirection;
+            for (int i = 0; i < trafficObjects.Count; i++)
+            {
+                TrafficObject current = trafficObjects[i];
 
+                if (current == pedestrian || !(current is Pedestrian))
+                    continue;
+
+                Pedestrian other = (Pedestrian)current;
+                bool otherUpperPair = other.Lane == 8 || other.Lane == 9;
+
+                if (upperPair != otherUpperPair)
+                    continue;
+
+                int otherCorrectLane = GetPedestrianCorrectLane(other);
+
+                if (!other.IsChangingLane && other.Lane == otherCorrectLane)
+                    continue;
+
+                int otherCenter = other.X + other.Width / 2;
+
+                if (Math.Abs(otherCenter - pedestrianCenter) <
+                    PedestrianOvertakeSectionDistance)
+                    return true;
+            }
+
+            return false;
+        }
+
+        private bool IsPedestrianReturnLaneSafe(Pedestrian pedestrian,
+            int targetLane, int rearClearance)
+        {
+            int pedestrianCenter = pedestrian.X + pedestrian.Width / 2;
+
+            for (int i = 0; i < trafficObjects.Count; i++)
+            {
+                TrafficObject current = trafficObjects[i];
+
+                if (current == pedestrian || !(current is Pedestrian))
+                    continue;
+
+                if (current.Lane != targetLane)
+                    continue;
+
+                Pedestrian other = (Pedestrian)current;
+
+                if (other.Direction == pedestrian.Direction)
+                {
+                    int forwardGap = GetForwardGap(pedestrian, other);
+                    int rearGap = GetRearGap(pedestrian, other);
+
+                    if (forwardGap != int.MaxValue &&
+                        forwardGap <= PedestrianFollowingDistance)
+                        return false;
+
+                    if (rearGap != int.MaxValue &&
+                        rearGap < rearClearance)
+                        return false;
+                }
+                else
+                {
+                    int otherCenter = other.X + other.Width / 2;
+
+                    if (Math.Abs(otherCenter - pedestrianCenter) <
+                        PedestrianHeadOnDistance)
+                        return false;
+                }
+            }
+
+            return true;
+        }
+
+        private Pedestrian FindPedestrianAhead(Pedestrian pedestrian,
+            bool sameDirection)
+        {
             return FindPedestrianAheadInLane(pedestrian, pedestrian.Lane,
-                false);
+                sameDirection);
         }
 
         private Pedestrian FindPedestrianAheadInLane(Pedestrian pedestrian,
@@ -1116,12 +1086,10 @@ namespace TheSharpTurn
                 if (current.Lane != lane)
                     continue;
 
-                if (sameDirection &&
-                    current.Direction != pedestrian.Direction)
+                if (sameDirection && current.Direction != pedestrian.Direction)
                     continue;
 
-                if (!sameDirection &&
-                    current.Direction == pedestrian.Direction)
+                if (!sameDirection && current.Direction == pedestrian.Direction)
                     continue;
 
                 int gap = GetForwardGap(pedestrian, current);
@@ -1152,12 +1120,10 @@ namespace TheSharpTurn
                 if (current.Lane != lane)
                     continue;
 
-                if (sameDirection &&
-                    current.Direction != pedestrian.Direction)
+                if (sameDirection && current.Direction != pedestrian.Direction)
                     continue;
 
-                if (!sameDirection &&
-                    current.Direction == pedestrian.Direction)
+                if (!sameDirection && current.Direction == pedestrian.Direction)
                     continue;
 
                 int gap = GetRearGap(pedestrian, current);
@@ -1170,6 +1136,47 @@ namespace TheSharpTurn
             }
 
             return nearest;
+        }
+
+        private bool IsPedestrianPassingLaneSafe(Pedestrian pedestrian,
+            int targetLane)
+        {
+            int targetY = GetPedestrianLaneTop(targetLane) +
+                (PedestrianLaneHeight - pedestrian.Height) / 2;
+            Rectangle laneChangeBounds = GetLaneChangeBounds(pedestrian,
+                targetY, PedestrianLaneChangePadding, 1);
+
+            if (!IsMotionAreaFree(laneChangeBounds, pedestrian))
+                return false;
+
+            int pedestrianCenter = pedestrian.X + pedestrian.Width / 2;
+
+            for (int i = 0; i < trafficObjects.Count; i++)
+            {
+                TrafficObject current = trafficObjects[i];
+
+                if (!(current is Pedestrian) || current == pedestrian)
+                    continue;
+
+                if (current.Lane != targetLane)
+                    continue;
+
+                int currentCenter = current.X + current.Width / 2;
+                int centerDistance = Math.Abs(currentCenter - pedestrianCenter);
+
+                if (current.Direction != pedestrian.Direction)
+                {
+                    if (centerDistance < PedestrianOncomingClearance)
+                        return false;
+                }
+                else if (centerDistance < PedestrianPassClearance +
+                    pedestrian.Width + current.Width)
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         private int GetPairedPedestrianLane(int lane)
@@ -1187,22 +1194,6 @@ namespace TheSharpTurn
             }
 
             return lane;
-        }
-
-        private int GetPedestrianKeepRightLane(Pedestrian pedestrian)
-        {
-            if (pedestrian.Lane == 8 || pedestrian.Lane == 9)
-            {
-                if (pedestrian.Direction == TravelDirection.Right)
-                    return 9;
-                else
-                    return 8;
-            }
-
-            if (pedestrian.Direction == TravelDirection.Right)
-                return 11;
-            else
-                return 10;
         }
 
         private bool TryMovePedestrianToLane(Pedestrian pedestrian,
@@ -1228,207 +1219,12 @@ namespace TheSharpTurn
             if (!IsMotionAreaFree(laneChangeBounds, pedestrian))
                 return false;
 
-            int pedestrianCenter = pedestrian.X + pedestrian.Width / 2;
-
-            for (int i = 0; i < trafficObjects.Count; i++)
-            {
-                TrafficObject current = trafficObjects[i];
-
-                if (current == pedestrian || !(current is Pedestrian))
-                    continue;
-
-                if (current.Lane != targetLane)
-                    continue;
-
-                int currentCenter = current.X + current.Width / 2;
-
-                if (Math.Abs(currentCenter - pedestrianCenter) <
-                    PedestrianLaneChangeClearance +
-                    pedestrian.Width / 2 + current.Width / 2)
-                    return false;
-            }
-
             pedestrian.PreviousMotionY = pedestrian.Y;
             pedestrian.Lane = targetLane;
             pedestrian.LaneChangeTargetLane = targetLane;
             pedestrian.LaneChangeTargetY = targetY;
             pedestrian.IsChangingLane = pedestrian.Y != targetY;
             return true;
-        }
-
-        private void UpdateBidirectionalConflictStates()
-        {
-            UpdatePedestrianConflictState(8, 9,
-                ref upperPedestrianConflictActive,
-                ref upperPedestrianPriority,
-                ref upperPedestrianConflictCenterX);
-
-            UpdatePedestrianConflictState(10, 11,
-                ref lowerPedestrianConflictActive,
-                ref lowerPedestrianPriority,
-                ref lowerPedestrianConflictCenterX);
-
-            UpdateBicycleConflictState();
-        }
-
-        private void UpdatePedestrianConflictState(int lane1, int lane2,
-            ref bool active, ref TravelDirection priority,
-            ref int conflictCenterX)
-        {
-            if (active && HasPedestrianDirectionNearPair(lane1, lane2,
-                priority, conflictCenterX,
-                PedestrianConflictReleaseDistance))
-                return;
-
-            active = false;
-
-            int center;
-
-            if (!TryFindPedestrianConflict(lane1, lane2, out center))
-                return;
-
-            active = true;
-            conflictCenterX = center;
-            priority = ChoosePedestrianPriority(lane1, lane2, center);
-        }
-
-        private bool TryFindPedestrianConflict(int lane1, int lane2,
-            out int conflictCenterX)
-        {
-            conflictCenterX = 0;
-            int firstCenter;
-
-            if (!TryFindOpposingPedestrianPair(lane1, -1,
-                out firstCenter))
-                return false;
-
-            int secondCenter;
-
-            if (!TryFindOpposingPedestrianPair(lane2, firstCenter,
-                out secondCenter))
-                return false;
-
-            conflictCenterX = (firstCenter + secondCenter) / 2;
-            return true;
-        }
-
-        private bool TryFindOpposingPedestrianPair(int lane,
-            int nearCenterX, out int pairCenterX)
-        {
-            pairCenterX = 0;
-            int bestDistance = int.MaxValue;
-            bool found = false;
-
-            for (int i = 0; i < trafficObjects.Count; i++)
-            {
-                if (!(trafficObjects[i] is Pedestrian) ||
-                    trafficObjects[i].Lane != lane)
-                    continue;
-
-                Pedestrian first = (Pedestrian)trafficObjects[i];
-                int firstCenter = first.X + first.Width / 2;
-
-                for (int j = i + 1; j < trafficObjects.Count; j++)
-                {
-                    if (!(trafficObjects[j] is Pedestrian) ||
-                        trafficObjects[j].Lane != lane)
-                        continue;
-
-                    Pedestrian second = (Pedestrian)trafficObjects[j];
-
-                    if (first.Direction == second.Direction)
-                        continue;
-
-                    int secondCenter = second.X + second.Width / 2;
-                    int distance = Math.Abs(firstCenter - secondCenter);
-
-                    if (distance > PedestrianBidirectionalConflictDistance)
-                        continue;
-
-                    int center = (firstCenter + secondCenter) / 2;
-
-                    if (nearCenterX >= 0 &&
-                        Math.Abs(center - nearCenterX) >
-                        PedestrianBidirectionalConflictDistance)
-                        continue;
-
-                    if (distance < bestDistance)
-                    {
-                        bestDistance = distance;
-                        pairCenterX = center;
-                        found = true;
-                    }
-                }
-            }
-
-            return found;
-        }
-
-        private TravelDirection ChoosePedestrianPriority(int lane1,
-            int lane2, int conflictCenterX)
-        {
-            int rightProgress = int.MinValue;
-            int leftProgress = int.MinValue;
-
-            for (int i = 0; i < trafficObjects.Count; i++)
-            {
-                if (!(trafficObjects[i] is Pedestrian))
-                    continue;
-
-                Pedestrian pedestrian = (Pedestrian)trafficObjects[i];
-
-                if (pedestrian.Lane != lane1 && pedestrian.Lane != lane2)
-                    continue;
-
-                int center = pedestrian.X + pedestrian.Width / 2;
-
-                if (Math.Abs(center - conflictCenterX) >
-                    PedestrianConflictReleaseDistance)
-                    continue;
-
-                if (pedestrian.Direction == TravelDirection.Right)
-                {
-                    int progress = center - conflictCenterX;
-
-                    if (progress > rightProgress)
-                        rightProgress = progress;
-                }
-                else
-                {
-                    int progress = conflictCenterX - center;
-
-                    if (progress > leftProgress)
-                        leftProgress = progress;
-                }
-            }
-
-            if (leftProgress > rightProgress)
-                return TravelDirection.Left;
-
-            return TravelDirection.Right;
-        }
-
-        private bool HasPedestrianDirectionNearPair(int lane1, int lane2,
-            TravelDirection direction, int centerX, int distance)
-        {
-            for (int i = 0; i < trafficObjects.Count; i++)
-            {
-                if (!(trafficObjects[i] is Pedestrian))
-                    continue;
-
-                Pedestrian pedestrian = (Pedestrian)trafficObjects[i];
-
-                if ((pedestrian.Lane == lane1 || pedestrian.Lane == lane2) &&
-                    pedestrian.Direction == direction)
-                {
-                    int center = pedestrian.X + pedestrian.Width / 2;
-
-                    if (Math.Abs(center - centerX) <= distance)
-                        return true;
-                }
-            }
-
-            return false;
         }
 
         private void UpdateBicycleConflictState()
@@ -1864,12 +1660,6 @@ namespace TheSharpTurn
                 InitializePedestrianMotionIfNeeded(pedestrian);
                 changed = TryMovePedestrianToLane(pedestrian,
                     pedestrian.Lane + verticalDirection);
-
-                if (changed)
-                {
-                    pedestrian.IsOvertaking = false;
-                    pedestrian.OvertakeReturnLane = -1;
-                }
             }
 
             if (changed)
