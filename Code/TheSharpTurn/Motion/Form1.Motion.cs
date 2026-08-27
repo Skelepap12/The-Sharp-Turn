@@ -7,10 +7,21 @@ namespace TheSharpTurn
     {
         const int RoadLaneChangeStep = 5;
         const int RoadBrakeTickDelay = 2;
+        const int RoadMergeRearClearance = 32;
+        const int RoadLaneChangePadding = 16;
+
         const int BikeLaneChangeStep = 4;
-        const int PedestrianLaneChangeStep = 6;
         const int BikeBrakeTickDelay = 2;
+        const int BikeFollowingDistance = 18;
+        const int BikePassClearance = 20;
+        const int BikeOncomingClearance = 140;
+        const int BikeLaneChangePadding = 12;
+
+        const int PedestrianLaneChangeStep = 6;
         const int PedestrianBrakeTickDelay = 2;
+        const int PedestrianFollowingDistance = 10;
+        const int PedestrianLaneChangeClearance = 24;
+        const int PedestrianLaneChangePadding = 12;
 
         private void simulationTimer_Tick(object sender, EventArgs e)
         {
@@ -61,7 +72,13 @@ namespace TheSharpTurn
 
         private void UpdateRoadUser(RoadUser roadUser)
         {
-            if (roadUser.IsOvertaking && !roadUser.IsChangingLane)
+            if (roadUser.IsChangingLane)
+            {
+                MoveAtBestSpeed(roadUser);
+                return;
+            }
+
+            if (roadUser.IsOvertaking)
             {
                 if (roadUser.Lane == roadUser.OvertakeReturnLane)
                 {
@@ -72,12 +89,19 @@ namespace TheSharpTurn
                 {
                     RoadUser returnLaneBlocker = FindRoadUserAheadInLane(roadUser,
                         roadUser.OvertakeReturnLane);
-                    bool returnLaneReady = returnLaneBlocker == null ||
+                    RoadUser returnLaneFollower = FindRoadUserBehindInLane(roadUser,
+                        roadUser.OvertakeReturnLane);
+
+                    bool frontClear = returnLaneBlocker == null ||
                         GetForwardGap(roadUser, returnLaneBlocker) >
                         GetRoadBrakingDistance(roadUser);
+                    bool rearClear = returnLaneFollower == null ||
+                        GetRearGap(roadUser, returnLaneFollower) >
+                        RoadMergeRearClearance;
 
-                    if (returnLaneReady && TryMoveRoadUserToLane(roadUser,
-                        roadUser.OvertakeReturnLane))
+                    if (frontClear && rearClear &&
+                        TryMoveRoadUserToLane(roadUser,
+                            roadUser.OvertakeReturnLane))
                     {
                         roadUser.IsOvertaking = false;
                         roadUser.OvertakeReturnLane = -1;
@@ -92,16 +116,25 @@ namespace TheSharpTurn
                 if (blocker != null)
                 {
                     int gap = GetForwardGap(roadUser, blocker);
+                    int safeDistance = GetRoadBrakingDistance(roadUser);
                     bool blockerIsSlower = blocker.ActualSpeed < roadUser.DesiredSpeed ||
                         blocker.DesiredSpeed < roadUser.DesiredSpeed;
 
-                    if (blockerIsSlower && gap <= GetRoadBrakingDistance(roadUser))
+                    if (gap <= safeDistance)
                     {
-                        if (!TryRegularRoadOvertake(roadUser))
+                        if (blockerIsSlower && TryRegularRoadOvertake(roadUser))
                         {
-                            MoveAtBestSpeed(roadUser, blocker.ActualSpeed);
+                            MoveAtBestSpeed(roadUser);
                             return;
                         }
+
+                        int followSpeed = blocker.ActualSpeed;
+
+                        if (gap < safeDistance && followSpeed > 0)
+                            followSpeed--;
+
+                        MoveAtBestSpeed(roadUser, followSpeed);
+                        return;
                     }
                 }
             }
@@ -117,20 +150,37 @@ namespace TheSharpTurn
                 return;
             }
 
+            if (emergency.IsChangingLane)
+            {
+                MoveAtBestSpeed(emergency);
+                return;
+            }
+
             RoadUser blocker = FindRoadUserAhead(emergency);
 
             if (blocker != null)
             {
                 int gap = GetForwardGap(emergency, blocker);
 
-                if (gap <= GetRoadBrakingDistance(emergency) &&
-                    blocker != manualObject)
+                if (gap <= GetRoadBrakingDistance(emergency))
                 {
-                    if (TryEmergencyRoadLaneChange(blocker))
+                    if (blocker != manualObject)
                     {
-                        blocker.IsOvertaking = false;
-                        blocker.OvertakeReturnLane = -1;
+                        if (TryEmergencyRoadLaneChange(blocker))
+                        {
+                            blocker.IsOvertaking = false;
+                            blocker.OvertakeReturnLane = -1;
+                        }
                     }
+
+                    int emergencySpeed = blocker.ActualSpeed;
+
+                    if (gap < GetRoadBrakingDistance(emergency) &&
+                        emergencySpeed > 0)
+                        emergencySpeed--;
+
+                    MoveAtBestSpeed(emergency, emergencySpeed);
+                    return;
                 }
             }
 
@@ -164,6 +214,34 @@ namespace TheSharpTurn
                     continue;
 
                 int gap = GetForwardGap(roadUser, current);
+
+                if (gap < nearestGap)
+                {
+                    nearestGap = gap;
+                    nearest = (RoadUser)current;
+                }
+            }
+
+            return nearest;
+        }
+
+        private RoadUser FindRoadUserBehindInLane(RoadUser roadUser, int lane)
+        {
+            RoadUser nearest = (RoadUser)null;
+            int nearestGap = int.MaxValue;
+
+            for (int i = 0; i < trafficObjects.Count; i++)
+            {
+                TrafficObject current = trafficObjects[i];
+
+                if (current == roadUser || !(current is RoadUser))
+                    continue;
+
+                if (current.Lane != lane ||
+                    current.Direction != roadUser.Direction)
+                    continue;
+
+                int gap = GetRearGap(roadUser, current);
 
                 if (gap < nearestGap)
                 {
@@ -242,26 +320,48 @@ namespace TheSharpTurn
                 (roadUser.Lane >= 3 && targetLane < 3))
                 return false;
 
+            if (!IsRoadTargetLaneSafe(roadUser, targetLane))
+                return false;
+
             int targetY = GetRoadLaneTop(targetLane) +
                 (RoadLaneHeight - roadUser.Height) / 2;
-            int topY = Math.Min(roadUser.Y, targetY);
-            int bottomY = Math.Max(roadUser.Y + roadUser.Height,
-                targetY + roadUser.Height);
+            Rectangle laneChangeBounds = GetLaneChangeBounds(roadUser,
+                targetY, RoadLaneChangePadding, 2);
 
-            Rectangle laneChangeBounds = new Rectangle(roadUser.X, topY,
-                roadUser.Width, bottomY - topY);
-            laneChangeBounds.Inflate(12, 2);
-
-            if (!trafficObjects.IsAreaFree(laneChangeBounds, roadUser))
+            if (!IsMotionAreaFree(laneChangeBounds, roadUser))
                 return false;
 
             roadUser.Lane = targetLane;
             roadUser.LaneChangeTargetY = targetY;
+            roadUser.IsChangingLane = roadUser.Y != targetY;
+            return true;
+        }
 
-            if (roadUser.Y == targetY)
-                roadUser.IsChangingLane = false;
-            else
-                roadUser.IsChangingLane = true;
+        private bool IsRoadTargetLaneSafe(RoadUser roadUser, int targetLane)
+        {
+            for (int i = 0; i < trafficObjects.Count; i++)
+            {
+                TrafficObject current = trafficObjects[i];
+
+                if (current == roadUser || !(current is RoadUser))
+                    continue;
+
+                if (current.Lane != targetLane ||
+                    current.Direction != roadUser.Direction)
+                    continue;
+
+                RoadUser other = (RoadUser)current;
+                int forwardGap = GetForwardGap(roadUser, other);
+                int rearGap = GetRearGap(roadUser, other);
+
+                if (forwardGap != int.MaxValue &&
+                    forwardGap <= GetRoadBrakingDistance(roadUser))
+                    return false;
+
+                if (rearGap != int.MaxValue &&
+                    rearGap <= RoadMergeRearClearance)
+                    return false;
+            }
 
             return true;
         }
@@ -291,7 +391,7 @@ namespace TheSharpTurn
             Rectangle nextBounds = new Rectangle(roadUser.X, nextY,
                 roadUser.Width, roadUser.Height);
 
-            if (!trafficObjects.IsAreaFree(nextBounds, roadUser))
+            if (!IsMotionAreaFree(nextBounds, roadUser))
                 return;
 
             roadUser.Y = nextY;
@@ -302,6 +402,14 @@ namespace TheSharpTurn
 
         private void UpdateBicycle(Bicycle bicycle)
         {
+            InitializeBicycleMotionIfNeeded(bicycle);
+
+            if (bicycle.IsChangingLane)
+            {
+                MoveAtBestSpeed(bicycle);
+                return;
+            }
+
             int correctLane;
 
             if (bicycle.Direction == TravelDirection.Left)
@@ -313,27 +421,30 @@ namespace TheSharpTurn
             {
                 Bicycle oncoming = FindBicycleAhead(bicycle, false);
                 bool oncomingIsClose = oncoming != null &&
-                    GetForwardGap(bicycle, oncoming) <= 40;
+                    GetForwardGap(bicycle, oncoming) <= 60;
 
+                Bicycle passedBicycle = FindBicycleBehindInLane(bicycle,
+                    correctLane, true);
                 Bicycle bicycleAheadInCorrectLane = FindBicycleAheadInLane(
                     bicycle, correctLane, true);
-                bool stillPassing = bicycleAheadInCorrectLane != null &&
-                    GetForwardGap(bicycle, bicycleAheadInCorrectLane) <=
-                    bicycle.DesiredSpeed + 8;
 
-                if (oncomingIsClose || !stillPassing)
+                bool rearClear = passedBicycle == null ||
+                    GetRearGap(bicycle, passedBicycle) >= BikePassClearance;
+                bool frontClear = bicycleAheadInCorrectLane == null ||
+                    GetForwardGap(bicycle, bicycleAheadInCorrectLane) >
+                    BikeFollowingDistance;
+
+                if (rearClear && frontClear &&
+                    TryMoveBicycleToLane(bicycle, correctLane))
                 {
-                    if (TryMoveBicycleToLane(bicycle, correctLane))
-                    {
-                        MoveAtBestSpeed(bicycle);
-                        return;
-                    }
+                    MoveAtBestSpeed(bicycle);
+                    return;
+                }
 
-                    if (oncomingIsClose)
-                    {
-                        bicycle.ActualSpeed = 0;
-                        return;
-                    }
+                if (oncomingIsClose)
+                {
+                    MoveAtBestSpeed(bicycle, 0);
+                    return;
                 }
 
                 MoveAtBestSpeed(bicycle);
@@ -348,17 +459,32 @@ namespace TheSharpTurn
                 bool blockerIsSlower = blocker.ActualSpeed < bicycle.DesiredSpeed ||
                     blocker.DesiredSpeed < bicycle.DesiredSpeed;
 
-                if (blockerIsSlower && gap <= bicycle.DesiredSpeed + 8)
+                if (gap <= BikeFollowingDistance)
                 {
-                    int passingLane;
+                    if (blockerIsSlower)
+                    {
+                        int passingLane;
 
-                    if (correctLane == 6)
-                        passingLane = 7;
-                    else
-                        passingLane = 6;
+                        if (correctLane == 6)
+                            passingLane = 7;
+                        else
+                            passingLane = 6;
 
-                    if (IsBikePassingLaneSafe(bicycle, passingLane))
-                        TryMoveBicycleToLane(bicycle, passingLane);
+                        if (IsBikePassingLaneSafe(bicycle, passingLane) &&
+                            TryMoveBicycleToLane(bicycle, passingLane))
+                        {
+                            MoveAtBestSpeed(bicycle);
+                            return;
+                        }
+                    }
+
+                    int followSpeed = blocker.ActualSpeed;
+
+                    if (gap < BikeFollowingDistance && followSpeed > 0)
+                        followSpeed--;
+
+                    MoveAtBestSpeed(bicycle, followSpeed);
+                    return;
                 }
             }
 
@@ -405,17 +531,48 @@ namespace TheSharpTurn
             return nearest;
         }
 
+        private Bicycle FindBicycleBehindInLane(Bicycle bicycle, int lane,
+            bool sameDirection)
+        {
+            Bicycle nearest = (Bicycle)null;
+            int nearestGap = int.MaxValue;
+
+            for (int i = 0; i < trafficObjects.Count; i++)
+            {
+                TrafficObject current = trafficObjects[i];
+
+                if (current == bicycle || !(current is Bicycle))
+                    continue;
+
+                if (current.Lane != lane)
+                    continue;
+
+                if (sameDirection && current.Direction != bicycle.Direction)
+                    continue;
+
+                if (!sameDirection && current.Direction == bicycle.Direction)
+                    continue;
+
+                int gap = GetRearGap(bicycle, current);
+
+                if (gap < nearestGap)
+                {
+                    nearestGap = gap;
+                    nearest = (Bicycle)current;
+                }
+            }
+
+            return nearest;
+        }
+
         private bool IsBikePassingLaneSafe(Bicycle bicycle, int targetLane)
         {
             int targetY = BikeTop + (targetLane - 6) * BikeLaneHeight +
                 (BikeLaneHeight - bicycle.Height) / 2;
+            Rectangle laneChangeBounds = GetLaneChangeBounds(bicycle,
+                targetY, BikeLaneChangePadding, 1);
 
-            Rectangle targetBounds = new Rectangle(bicycle.X, targetY,
-                bicycle.Width, bicycle.Height);
-            Rectangle safeBounds = targetBounds;
-            safeBounds.Inflate(8, 1);
-
-            if (!trafficObjects.IsAreaFree(safeBounds, bicycle))
+            if (!IsMotionAreaFree(laneChangeBounds, bicycle))
                 return false;
 
             int bicycleCenter = bicycle.X + bicycle.Width / 2;
@@ -427,13 +584,21 @@ namespace TheSharpTurn
                 if (!(current is Bicycle) || current == bicycle)
                     continue;
 
-                if (current.Lane == targetLane &&
-                    current.Direction != bicycle.Direction)
-                {
-                    int currentCenter = current.X + current.Width / 2;
+                if (current.Lane != targetLane)
+                    continue;
 
-                    if (Math.Abs(currentCenter - bicycleCenter) < 100)
+                int currentCenter = current.X + current.Width / 2;
+                int centerDistance = Math.Abs(currentCenter - bicycleCenter);
+
+                if (current.Direction != bicycle.Direction)
+                {
+                    if (centerDistance < BikeOncomingClearance)
                         return false;
+                }
+                else if (centerDistance < BikePassClearance +
+                    bicycle.Width + current.Width)
+                {
+                    return false;
                 }
             }
 
@@ -442,27 +607,40 @@ namespace TheSharpTurn
 
         private bool TryMoveBicycleToLane(Bicycle bicycle, int targetLane)
         {
+            if (bicycle.IsChangingLane)
+                return false;
+
             if (targetLane < 6 || targetLane > 7)
                 return false;
 
+            InitializeBicycleMotionIfNeeded(bicycle);
+
             int targetY = BikeTop + (targetLane - 6) * BikeLaneHeight +
                 (BikeLaneHeight - bicycle.Height) / 2;
+            Rectangle laneChangeBounds = GetLaneChangeBounds(bicycle,
+                targetY, BikeLaneChangePadding, 1);
 
-            Rectangle targetBounds = new Rectangle(bicycle.X, targetY,
-                bicycle.Width, bicycle.Height);
-            Rectangle safeBounds = targetBounds;
-            safeBounds.Inflate(8, 1);
-
-            if (!trafficObjects.IsAreaFree(safeBounds, bicycle))
+            if (!IsMotionAreaFree(laneChangeBounds, bicycle))
                 return false;
 
+            bicycle.PreviousMotionY = bicycle.Y;
             bicycle.Lane = targetLane;
-            bicycle.Y = targetY;
+            bicycle.LaneChangeTargetLane = targetLane;
+            bicycle.LaneChangeTargetY = targetY;
+            bicycle.IsChangingLane = bicycle.Y != targetY;
             return true;
         }
 
         private void UpdatePedestrian(Pedestrian pedestrian)
         {
+            InitializePedestrianMotionIfNeeded(pedestrian);
+
+            if (pedestrian.IsChangingLane)
+            {
+                MoveAtBestSpeed(pedestrian);
+                return;
+            }
+
             Pedestrian blocker = FindPedestrianAhead(pedestrian);
 
             if (blocker != null)
@@ -474,16 +652,39 @@ namespace TheSharpTurn
                     bool blockerIsSlower = blocker.ActualSpeed < pedestrian.DesiredSpeed ||
                         blocker.DesiredSpeed < pedestrian.DesiredSpeed;
 
-                    if (blockerIsSlower && gap <= pedestrian.DesiredSpeed + 6)
-                        TryMovePedestrianToLane(pedestrian,
-                            GetPairedPedestrianLane(pedestrian.Lane));
+                    if (gap <= PedestrianFollowingDistance)
+                    {
+                        if (blockerIsSlower &&
+                            TryMovePedestrianToLane(pedestrian,
+                                GetPairedPedestrianLane(pedestrian.Lane)))
+                        {
+                            MoveAtBestSpeed(pedestrian);
+                            return;
+                        }
+
+                        int followSpeed = blocker.ActualSpeed;
+
+                        if (gap < PedestrianFollowingDistance &&
+                            followSpeed > 0)
+                            followSpeed--;
+
+                        MoveAtBestSpeed(pedestrian, followSpeed);
+                        return;
+                    }
                 }
                 else if (gap <= 20)
                 {
                     int keepRightLane = GetPedestrianKeepRightLane(pedestrian);
 
-                    if (pedestrian.Lane != keepRightLane)
-                        TryMovePedestrianToLane(pedestrian, keepRightLane);
+                    if (pedestrian.Lane != keepRightLane &&
+                        TryMovePedestrianToLane(pedestrian, keepRightLane))
+                    {
+                        MoveAtBestSpeed(pedestrian);
+                        return;
+                    }
+
+                    MoveAtBestSpeed(pedestrian, 0);
+                    return;
                 }
             }
 
@@ -550,8 +751,12 @@ namespace TheSharpTurn
                 return 10;
         }
 
-        private bool TryMovePedestrianToLane(Pedestrian pedestrian, int targetLane)
+        private bool TryMovePedestrianToLane(Pedestrian pedestrian,
+            int targetLane)
         {
+            if (pedestrian.IsChangingLane)
+                return false;
+
             if (targetLane < 8 || targetLane > 11)
                 return false;
 
@@ -559,19 +764,41 @@ namespace TheSharpTurn
                 (pedestrian.Lane >= 10 && targetLane <= 9))
                 return false;
 
+            InitializePedestrianMotionIfNeeded(pedestrian);
+
             int targetY = GetPedestrianLaneTop(targetLane) +
                 (PedestrianLaneHeight - pedestrian.Height) / 2;
+            Rectangle laneChangeBounds = GetLaneChangeBounds(pedestrian,
+                targetY, PedestrianLaneChangePadding, 1);
 
-            Rectangle targetBounds = new Rectangle(pedestrian.X, targetY,
-                pedestrian.Width, pedestrian.Height);
-            Rectangle safeBounds = targetBounds;
-            safeBounds.Inflate(3, 1);
-
-            if (!trafficObjects.IsAreaFree(safeBounds, pedestrian))
+            if (!IsMotionAreaFree(laneChangeBounds, pedestrian))
                 return false;
 
+            int pedestrianCenter = pedestrian.X + pedestrian.Width / 2;
+
+            for (int i = 0; i < trafficObjects.Count; i++)
+            {
+                TrafficObject current = trafficObjects[i];
+
+                if (current == pedestrian || !(current is Pedestrian))
+                    continue;
+
+                if (current.Lane != targetLane)
+                    continue;
+
+                int currentCenter = current.X + current.Width / 2;
+
+                if (Math.Abs(currentCenter - pedestrianCenter) <
+                    PedestrianLaneChangeClearance +
+                    pedestrian.Width / 2 + current.Width / 2)
+                    return false;
+            }
+
+            pedestrian.PreviousMotionY = pedestrian.Y;
             pedestrian.Lane = targetLane;
-            pedestrian.Y = targetY;
+            pedestrian.LaneChangeTargetLane = targetLane;
+            pedestrian.LaneChangeTargetY = targetY;
+            pedestrian.IsChangingLane = pedestrian.Y != targetY;
             return true;
         }
 
@@ -606,6 +833,135 @@ namespace TheSharpTurn
             }
         }
 
+        private int GetRearGap(TrafficObject obj, TrafficObject other)
+        {
+            int objCenter = obj.X + obj.Width / 2;
+            int otherCenter = other.X + other.Width / 2;
+
+            if (obj.Direction == TravelDirection.Right)
+            {
+                if (otherCenter >= objCenter)
+                    return int.MaxValue;
+
+                int gap = obj.X - (other.X + other.Width);
+
+                if (gap < 0)
+                    gap = 0;
+
+                return gap;
+            }
+            else
+            {
+                if (otherCenter <= objCenter)
+                    return int.MaxValue;
+
+                int gap = other.X - (obj.X + obj.Width);
+
+                if (gap < 0)
+                    gap = 0;
+
+                return gap;
+            }
+        }
+
+        private Rectangle GetLaneChangeBounds(TrafficObject obj, int targetY,
+            int paddingX, int paddingY)
+        {
+            int topY = Math.Min(obj.Y, targetY);
+            int bottomY = Math.Max(obj.Y + obj.Height,
+                targetY + obj.Height);
+
+            Rectangle bounds = new Rectangle(obj.X, topY, obj.Width,
+                bottomY - topY);
+            bounds.Inflate(paddingX, paddingY);
+            return bounds;
+        }
+
+        private bool TryGetActiveLaneChangeBounds(TrafficObject obj,
+            out Rectangle bounds)
+        {
+            bounds = Rectangle.Empty;
+
+            if (obj is RoadUser)
+            {
+                RoadUser roadUser = (RoadUser)obj;
+
+                if (!roadUser.IsChangingLane)
+                    return false;
+
+                bounds = GetLaneChangeBounds(roadUser,
+                    roadUser.LaneChangeTargetY, RoadLaneChangePadding, 2);
+                return true;
+            }
+
+            if (obj is Bicycle)
+            {
+                Bicycle bicycle = (Bicycle)obj;
+
+                if (!bicycle.IsChangingLane)
+                    return false;
+
+                bounds = GetLaneChangeBounds(bicycle,
+                    bicycle.LaneChangeTargetY, BikeLaneChangePadding, 1);
+                return true;
+            }
+
+            if (obj is Pedestrian)
+            {
+                Pedestrian pedestrian = (Pedestrian)obj;
+
+                if (!pedestrian.IsChangingLane)
+                    return false;
+
+                bounds = GetLaneChangeBounds(pedestrian,
+                    pedestrian.LaneChangeTargetY,
+                    PedestrianLaneChangePadding, 1);
+                return true;
+            }
+
+            return false;
+        }
+
+        private bool IsMotionAreaFree(Rectangle bounds,
+            TrafficObject ignoredObject)
+        {
+            if (!trafficObjects.IsAreaFree(bounds, ignoredObject))
+                return false;
+
+            for (int i = 0; i < trafficObjects.Count; i++)
+            {
+                TrafficObject current = trafficObjects[i];
+
+                if (current == ignoredObject)
+                    continue;
+
+                Rectangle laneChangeBounds;
+
+                if (TryGetActiveLaneChangeBounds(current,
+                    out laneChangeBounds) &&
+                    laneChangeBounds.IntersectsWith(bounds))
+                    return false;
+            }
+
+            return true;
+        }
+
+        private Rectangle GetMovementSafetyBounds(TrafficObject obj,
+            int speed)
+        {
+            Rectangle laneChangeBounds;
+
+            if (!TryGetActiveLaneChangeBounds(obj, out laneChangeBounds))
+                return GetMovedBounds(obj, speed);
+
+            if (obj.Direction == TravelDirection.Right)
+                laneChangeBounds.Offset(speed, 0);
+            else
+                laneChangeBounds.Offset(-speed, 0);
+
+            return laneChangeBounds;
+        }
+
         private void MoveAtBestSpeed(TrafficObject obj)
         {
             MoveAtBestSpeed(obj, obj.DesiredSpeed);
@@ -630,7 +986,8 @@ namespace TheSharpTurn
             int plannedSpeed = movementSpeed;
 
             while (movementSpeed > 0 &&
-                !trafficObjects.IsAreaFree(GetMovedBounds(obj, movementSpeed), obj))
+                !IsMotionAreaFree(GetMovementSafetyBounds(obj,
+                    movementSpeed), obj))
             {
                 movementSpeed--;
             }
@@ -644,7 +1001,8 @@ namespace TheSharpTurn
                 obj.Move();
         }
 
-        private int GetRoadUserSpeedForTick(RoadUser roadUser, int allowedSpeed)
+        private int GetRoadUserSpeedForTick(RoadUser roadUser,
+            int allowedSpeed)
         {
             if (roadUser.ActualSpeed <= allowedSpeed)
             {
@@ -683,7 +1041,8 @@ namespace TheSharpTurn
                 obj.X + obj.Width < -OffScreenBuffer;
         }
 
-        private void TryManualLaneChange(TrafficObject obj, int verticalDirection)
+        private void TryManualLaneChange(TrafficObject obj,
+            int verticalDirection)
         {
             bool changed = false;
 
@@ -712,9 +1071,6 @@ namespace TheSharpTurn
                 InitializeBicycleMotionIfNeeded(bicycle);
                 changed = TryMoveBicycleToLane(bicycle,
                     bicycle.Lane + verticalDirection);
-
-                if (changed)
-                    BeginBicycleLaneChangeIfNeeded(bicycle);
             }
             else if (obj is Pedestrian)
             {
@@ -729,9 +1085,6 @@ namespace TheSharpTurn
                 InitializePedestrianMotionIfNeeded(pedestrian);
                 changed = TryMovePedestrianToLane(pedestrian,
                     pedestrian.Lane + verticalDirection);
-
-                if (changed)
-                    BeginPedestrianLaneChangeIfNeeded(pedestrian);
             }
 
             if (changed)
@@ -781,9 +1134,6 @@ namespace TheSharpTurn
 
             if (bicycle.IsChangingLane)
             {
-                if (bicycle.Y != bicycle.PreviousMotionY)
-                    bicycle.Y = bicycle.PreviousMotionY;
-
                 if (bicycle.Lane != bicycle.LaneChangeTargetLane)
                     bicycle.Lane = bicycle.LaneChangeTargetLane;
 
@@ -827,7 +1177,7 @@ namespace TheSharpTurn
             Rectangle nextBounds = new Rectangle(bicycle.X, nextY,
                 bicycle.Width, bicycle.Height);
 
-            if (trafficObjects.IsAreaFree(nextBounds, bicycle))
+            if (IsMotionAreaFree(nextBounds, bicycle))
                 bicycle.Y = nextY;
 
             bicycle.PreviousMotionY = bicycle.Y;
@@ -863,8 +1213,8 @@ namespace TheSharpTurn
             int plannedExtraSpeed = extraSpeed;
 
             while (extraSpeed > 0 &&
-                !trafficObjects.IsAreaFree(GetMovedBounds(bicycle, extraSpeed),
-                    bicycle))
+                !IsMotionAreaFree(GetMovementSafetyBounds(bicycle,
+                    extraSpeed), bicycle))
             {
                 extraSpeed--;
             }
@@ -913,9 +1263,6 @@ namespace TheSharpTurn
 
             if (pedestrian.IsChangingLane)
             {
-                if (pedestrian.Y != pedestrian.PreviousMotionY)
-                    pedestrian.Y = pedestrian.PreviousMotionY;
-
                 if (pedestrian.Lane != pedestrian.LaneChangeTargetLane)
                     pedestrian.Lane = pedestrian.LaneChangeTargetLane;
 
@@ -959,7 +1306,7 @@ namespace TheSharpTurn
             Rectangle nextBounds = new Rectangle(pedestrian.X, nextY,
                 pedestrian.Width, pedestrian.Height);
 
-            if (trafficObjects.IsAreaFree(nextBounds, pedestrian))
+            if (IsMotionAreaFree(nextBounds, pedestrian))
                 pedestrian.Y = nextY;
 
             pedestrian.PreviousMotionY = pedestrian.Y;
@@ -982,7 +1329,8 @@ namespace TheSharpTurn
             pedestrian.MotionBrakeTickCounter++;
             int smoothSpeed = pedestrian.MotionSpeed;
 
-            if (pedestrian.MotionBrakeTickCounter >= PedestrianBrakeTickDelay)
+            if (pedestrian.MotionBrakeTickCounter >=
+                PedestrianBrakeTickDelay)
             {
                 pedestrian.MotionBrakeTickCounter = 0;
                 smoothSpeed--;
@@ -995,8 +1343,8 @@ namespace TheSharpTurn
             int plannedExtraSpeed = extraSpeed;
 
             while (extraSpeed > 0 &&
-                !trafficObjects.IsAreaFree(GetMovedBounds(pedestrian, extraSpeed),
-                    pedestrian))
+                !IsMotionAreaFree(GetMovementSafetyBounds(pedestrian,
+                    extraSpeed), pedestrian))
             {
                 extraSpeed--;
             }
