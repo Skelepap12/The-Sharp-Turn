@@ -12,6 +12,8 @@ namespace TheSharpTurn
         bool isChangingLane;
         int laneChangeTargetY;
         int laneChangeTargetLane;
+        bool isOvertaking;
+        int overtakeReturnLane;
 
         public SidewalkUser()
             : base()
@@ -37,6 +39,8 @@ namespace TheSharpTurn
             IsChangingLane = false;
             LaneChangeTargetY = Y;
             LaneChangeTargetLane = Lane;
+            IsOvertaking = false;
+            OvertakeReturnLane = -1;
         }
 
         public int MotionSpeed
@@ -126,6 +130,30 @@ namespace TheSharpTurn
             set
             {
                 laneChangeTargetLane = value;
+            }
+        }
+
+        public bool IsOvertaking
+        {
+            get
+            {
+                return isOvertaking;
+            }
+            set
+            {
+                isOvertaking = value;
+            }
+        }
+
+        public int OvertakeReturnLane
+        {
+            get
+            {
+                return overtakeReturnLane;
+            }
+            set
+            {
+                overtakeReturnLane = value;
             }
         }
 
