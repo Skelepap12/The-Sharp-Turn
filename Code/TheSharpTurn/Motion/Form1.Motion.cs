@@ -15,11 +15,15 @@ namespace TheSharpTurn
         const int BikeFollowingDistance = 18;
         const int BikePassClearance = 20;
         const int BikeOncomingClearance = 140;
+        const int BikeHeadOnDistance = 60;
+        const int BikeOvertakeSectionDistance = 140;
         const int BikeLaneChangePadding = 12;
 
         const int PedestrianLaneChangeStep = 6;
         const int PedestrianBrakeTickDelay = 2;
         const int PedestrianFollowingDistance = 10;
+        const int PedestrianPassClearance = 12;
+        const int PedestrianHeadOnDistance = 20;
         const int PedestrianLaneChangeClearance = 24;
         const int PedestrianLaneChangePadding = 12;
 
@@ -434,22 +438,19 @@ namespace TheSharpTurn
 
             if (bicycle.IsChangingLane)
             {
-                MoveAtBestSpeed(bicycle);
+                if (!TryMaintainBicycleFollowingDistance(bicycle))
+                    MoveAtBestSpeed(bicycle);
+
                 return;
             }
 
-            int correctLane;
-
-            if (bicycle.Direction == TravelDirection.Left)
-                correctLane = 6;
-            else
-                correctLane = 7;
+            int correctLane = GetBicycleCorrectLane(bicycle);
 
             if (bicycle.Lane != correctLane)
             {
                 Bicycle oncoming = FindBicycleAhead(bicycle, false);
                 bool oncomingIsClose = oncoming != null &&
-                    GetForwardGap(bicycle, oncoming) <= 60;
+                    GetForwardGap(bicycle, oncoming) <= BikeHeadOnDistance;
 
                 Bicycle passedBicycle = FindBicycleBehindInLane(bicycle,
                     correctLane, true);
@@ -463,6 +464,8 @@ namespace TheSharpTurn
                     BikeFollowingDistance;
 
                 if (rearClear && frontClear &&
+                    IsBikeReturnLaneSafe(bicycle, correctLane,
+                        BikePassClearance) &&
                     TryMoveBicycleToLane(bicycle, correctLane))
                 {
                     MoveAtBestSpeed(bicycle);
@@ -471,9 +474,20 @@ namespace TheSharpTurn
 
                 if (oncomingIsClose)
                 {
+                    if (IsBikeReturnLaneSafe(bicycle, correctLane,
+                        BikeFollowingDistance) &&
+                        TryMoveBicycleToLane(bicycle, correctLane))
+                    {
+                        MoveAtBestSpeed(bicycle);
+                        return;
+                    }
+
                     MoveAtBestSpeed(bicycle, 0);
                     return;
                 }
+
+                if (TryMaintainBicycleFollowingDistance(bicycle))
+                    return;
 
                 MoveAtBestSpeed(bicycle);
                 return;
@@ -498,7 +512,8 @@ namespace TheSharpTurn
                         else
                             passingLane = 6;
 
-                        if (IsBikePassingLaneSafe(bicycle, passingLane) &&
+                        if (!IsNearbyBikeOvertakeActive(bicycle) &&
+                            IsBikePassingLaneSafe(bicycle, passingLane) &&
                             TryMoveBicycleToLane(bicycle, passingLane))
                         {
                             MoveAtBestSpeed(bicycle);
@@ -516,7 +531,116 @@ namespace TheSharpTurn
                 }
             }
 
+            Bicycle wrongWayBicycle = FindBicycleAhead(bicycle, false);
+
+            if (wrongWayBicycle != null &&
+                GetForwardGap(bicycle, wrongWayBicycle) <=
+                BikeHeadOnDistance)
+            {
+                MoveAtBestSpeed(bicycle, 0);
+                return;
+            }
+
             MoveAtBestSpeed(bicycle);
+        }
+
+        private int GetBicycleCorrectLane(Bicycle bicycle)
+        {
+            if (bicycle.Direction == TravelDirection.Left)
+                return 6;
+
+            return 7;
+        }
+
+        private bool TryMaintainBicycleFollowingDistance(Bicycle bicycle)
+        {
+            Bicycle blocker = FindBicycleAhead(bicycle, true);
+
+            if (blocker == null)
+                return false;
+
+            int gap = GetForwardGap(bicycle, blocker);
+
+            if (gap > BikeFollowingDistance)
+                return false;
+
+            int followSpeed = blocker.ActualSpeed;
+
+            if (gap < BikeFollowingDistance && followSpeed > 0)
+                followSpeed--;
+
+            MoveAtBestSpeed(bicycle, followSpeed);
+            return true;
+        }
+
+        private bool IsNearbyBikeOvertakeActive(Bicycle bicycle)
+        {
+            int bicycleCenter = bicycle.X + bicycle.Width / 2;
+
+            for (int i = 0; i < trafficObjects.Count; i++)
+            {
+                TrafficObject current = trafficObjects[i];
+
+                if (current == bicycle || !(current is Bicycle))
+                    continue;
+
+                Bicycle other = (Bicycle)current;
+                int otherCorrectLane = GetBicycleCorrectLane(other);
+
+                if (!other.IsChangingLane && other.Lane == otherCorrectLane)
+                    continue;
+
+                int otherCenter = other.X + other.Width / 2;
+
+                if (Math.Abs(otherCenter - bicycleCenter) <
+                    BikeOvertakeSectionDistance)
+                    return true;
+            }
+
+            return false;
+        }
+
+        private bool IsBikeReturnLaneSafe(Bicycle bicycle, int targetLane,
+            int rearClearance)
+        {
+            int bicycleCenter = bicycle.X + bicycle.Width / 2;
+
+            for (int i = 0; i < trafficObjects.Count; i++)
+            {
+                TrafficObject current = trafficObjects[i];
+
+                if (current == bicycle || !(current is Bicycle))
+                    continue;
+
+                if (current.Lane != targetLane)
+                    continue;
+
+                Bicycle other = (Bicycle)current;
+
+                if (other.Direction == bicycle.Direction)
+                {
+                    int forwardGap = GetForwardGap(bicycle, other);
+                    int rearGap = GetRearGap(bicycle, other);
+
+                    if (forwardGap != int.MaxValue &&
+                        forwardGap <= BikeFollowingDistance)
+                        return false;
+
+                    if (rearGap != int.MaxValue &&
+                        rearGap < rearClearance)
+                        return false;
+                }
+                else
+                {
+                    int otherCenter = other.X + other.Width / 2;
+
+                    if (Math.Abs(otherCenter - bicycleCenter) <
+                        BikeOncomingClearance)
+                        return false;
+                }
+            }
+
+            return true;
         }
 
         private Bicycle FindBicycleAhead(Bicycle bicycle, bool sameDirection)
@@ -665,61 +789,126 @@ namespace TheSharpTurn
 
             if (pedestrian.IsChangingLane)
             {
-                MoveAtBestSpeed(pedestrian);
+                if (!TryMaintainPedestrianFollowingDistance(pedestrian))
+                    MoveAtBestSpeed(pedestrian);
+
                 return;
             }
 
-            Pedestrian blocker = FindPedestrianAhead(pedestrian);
+            int keepRightLane = GetPedestrianKeepRightLane(pedestrian);
 
-            if (blocker != null)
+            if (pedestrian.Lane != keepRightLane)
             {
-                int gap = GetForwardGap(pedestrian, blocker);
+                Pedestrian passedPedestrian = FindPedestrianBehindInLane(
+                    pedestrian, keepRightLane, true);
+                Pedestrian pedestrianAheadInKeepRight =
+                    FindPedestrianAheadInLane(pedestrian, keepRightLane,
+                        true);
 
-                if (blocker.Direction == pedestrian.Direction)
+                bool rearClear = passedPedestrian == null ||
+                    GetRearGap(pedestrian, passedPedestrian) >=
+                    PedestrianPassClearance;
+                bool frontClear = pedestrianAheadInKeepRight == null ||
+                    GetForwardGap(pedestrian, pedestrianAheadInKeepRight) >
+                    PedestrianFollowingDistance;
+
+                if (rearClear && frontClear &&
+                    TryMovePedestrianToLane(pedestrian, keepRightLane))
                 {
-                    bool blockerIsSlower = blocker.ActualSpeed < pedestrian.DesiredSpeed ||
-                        blocker.DesiredSpeed < pedestrian.DesiredSpeed;
-
-                    if (gap <= PedestrianFollowingDistance)
-                    {
-                        if (blockerIsSlower &&
-                            TryMovePedestrianToLane(pedestrian,
-                                GetPairedPedestrianLane(pedestrian.Lane)))
-                        {
-                            MoveAtBestSpeed(pedestrian);
-                            return;
-                        }
-
-                        int followSpeed = blocker.ActualSpeed;
-
-                        if (gap < PedestrianFollowingDistance &&
-                            followSpeed > 0)
-                            followSpeed--;
-
-                        MoveAtBestSpeed(pedestrian, followSpeed);
-                        return;
-                    }
+                    MoveAtBestSpeed(pedestrian);
+                    return;
                 }
-                else if (gap <= 20)
-                {
-                    int keepRightLane = GetPedestrianKeepRightLane(pedestrian);
+            }
 
-                    if (pedestrian.Lane != keepRightLane &&
-                        TryMovePedestrianToLane(pedestrian, keepRightLane))
+            Pedestrian sameDirectionBlocker = FindPedestrianAheadInLane(
+                pedestrian, pedestrian.Lane, true);
+
+            if (sameDirectionBlocker != null)
+            {
+                int gap = GetForwardGap(pedestrian, sameDirectionBlocker);
+                bool blockerIsSlower =
+                    sameDirectionBlocker.ActualSpeed < pedestrian.DesiredSpeed ||
+                    sameDirectionBlocker.DesiredSpeed < pedestrian.DesiredSpeed;
+
+                if (gap <= PedestrianFollowingDistance)
+                {
+                    if (blockerIsSlower && pedestrian.Lane == keepRightLane &&
+                        TryMovePedestrianToLane(pedestrian,
+                            GetPairedPedestrianLane(pedestrian.Lane)))
                     {
                         MoveAtBestSpeed(pedestrian);
                         return;
                     }
 
-                    MoveAtBestSpeed(pedestrian, 0);
+                    int followSpeed = sameDirectionBlocker.ActualSpeed;
+
+                    if (gap < PedestrianFollowingDistance &&
+                        followSpeed > 0)
+                        followSpeed--;
+
+                    MoveAtBestSpeed(pedestrian, followSpeed);
                     return;
                 }
+            }
+
+            Pedestrian oncoming = FindPedestrianAheadInLane(pedestrian,
+                pedestrian.Lane, false);
+
+            if (oncoming != null &&
+                GetForwardGap(pedestrian, oncoming) <=
+                PedestrianHeadOnDistance)
+            {
+                if (pedestrian.Lane != keepRightLane &&
+                    TryMovePedestrianToLane(pedestrian, keepRightLane))
+                {
+                    MoveAtBestSpeed(pedestrian);
+                    return;
+                }
+
+                MoveAtBestSpeed(pedestrian, 0);
+                return;
             }
 
             MoveAtBestSpeed(pedestrian);
         }
 
+        private bool TryMaintainPedestrianFollowingDistance(
+            Pedestrian pedestrian)
+        {
+            Pedestrian blocker = FindPedestrianAheadInLane(pedestrian,
+                pedestrian.Lane, true);
+
+            if (blocker == null)
+                return false;
+
+            int gap = GetForwardGap(pedestrian, blocker);
+
+            if (gap > PedestrianFollowingDistance)
+                return false;
+
+            int followSpeed = blocker.ActualSpeed;
+
+            if (gap < PedestrianFollowingDistance && followSpeed > 0)
+                followSpeed--;
+
+            MoveAtBestSpeed(pedestrian, followSpeed);
+            return true;
+        }
+
         private Pedestrian FindPedestrianAhead(Pedestrian pedestrian)
+        {
+            Pedestrian sameDirection = FindPedestrianAheadInLane(pedestrian,
+                pedestrian.Lane, true);
+
+            if (sameDirection != null)
+                return sameDirection;
+
+            return FindPedestrianAheadInLane(pedestrian, pedestrian.Lane,
+                false);
+        }
+
+        private Pedestrian FindPedestrianAheadInLane(Pedestrian pedestrian,
+            int lane, bool sameDirection)
         {
             Pedestrian nearest = (Pedestrian)null;
             int nearestGap = int.MaxValue;
@@ -731,10 +920,54 @@ namespace TheSharpTurn
                 if (current == pedestrian || !(current is Pedestrian))
                     continue;
 
-                if (current.Lane != pedestrian.Lane)
+                if (current.Lane != lane)
+                    continue;
+
+                if (sameDirection &&
+                    current.Direction != pedestrian.Direction)
+                    continue;
+
+                if (!sameDirection &&
+                    current.Direction == pedestrian.Direction)
                     continue;
 
                 int gap = GetForwardGap(pedestrian, current);
+
+                if (gap < nearestGap)
+                {
+                    nearestGap = gap;
+                    nearest = (Pedestrian)current;
+                }
+            }
+
+            return nearest;
+        }
+
+        private Pedestrian FindPedestrianBehindInLane(Pedestrian pedestrian,
+            int lane, bool sameDirection)
+        {
+            Pedestrian nearest = (Pedestrian)null;
+            int nearestGap = int.MaxValue;
+
+            for (int i = 0; i < trafficObjects.Count; i++)
+            {
+                TrafficObject current = trafficObjects[i];
+
+                if (current == pedestrian || !(current is Pedestrian))
+                    continue;
+
+                if (current.Lane != lane)
+                    continue;
+
+                if (sameDirection &&
+                    current.Direction != pedestrian.Direction)
+                    continue;
+
+                if (!sameDirection &&
+                    current.Direction == pedestrian.Direction)
+                    continue;
+
+                int gap = GetRearGap(pedestrian, current);
 
                 if (gap < nearestGap)
                 {
