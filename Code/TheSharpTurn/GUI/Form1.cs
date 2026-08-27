@@ -128,11 +128,7 @@ namespace TheSharpTurn
             curIndex = -1;
             placementMode = true;
             UpdateSelectedInfo();
-
-            if (comboType.SelectedIndex == 5)
-                labelStatus.Text = "Placement mode: click the left or right entrance of a pedestrian lane.";
-            else
-                labelStatus.Text = "Placement mode: click a valid lane on the map.";
+            labelStatus.Text = "Placement mode: click a valid lane on the map.";
         }
 
         private void pictureBoxMap_MouseDown(object sender, MouseEventArgs e)
@@ -221,19 +217,14 @@ namespace TheSharpTurn
                     return;
                 }
 
-                if (xP <= 90)
-                    direction = TravelDirection.Right;
-                else if (xP >= pictureBoxMap.Width - 90)
-                    direction = TravelDirection.Left;
-                else
-                {
-                    labelStatus.Text = "For pedestrians, click near the left or right entrance of the lane.";
-                    return;
-                }
-
                 laneTop = GetPedestrianLaneTop(lane);
                 laneHeight = PedestrianLaneHeight;
                 laneLimit = PedestrianLaneLimit;
+
+                if (lane == 8 || lane == 10)
+                    direction = TravelDirection.Left;
+                else
+                    direction = TravelDirection.Right;
             }
 
             if (lane < 0)
@@ -515,8 +506,10 @@ namespace TheSharpTurn
 
             using (Font mapFont = new Font("Arial", 8, FontStyle.Bold))
             {
-                g.DrawString("PEDESTRIANS", mapFont, Brushes.DimGray,
-                    8, TopPedestrianTop + 17);
+                g.DrawString("PED LEFT", mapFont, Brushes.DimGray,
+                    8, TopPedestrianTop + 5);
+                g.DrawString("PED RIGHT", mapFont, Brushes.DimGray,
+                    8, TopPedestrianTop + PedestrianLaneHeight + 5);
                 g.DrawString("BIKES LEFT", mapFont, Brushes.White,
                     8, BikeTop + 5);
                 g.DrawString("BIKES RIGHT", mapFont, Brushes.White,
@@ -525,8 +518,10 @@ namespace TheSharpTurn
                     8, RoadTop + 5);
                 g.DrawString("ROAD RIGHT", mapFont, Brushes.White,
                     8, BottomRoadTop + 5);
-                g.DrawString("PEDESTRIANS", mapFont, Brushes.DimGray,
-                    8, BottomPedestrianTop + 17);
+                g.DrawString("PED LEFT", mapFont, Brushes.DimGray,
+                    8, BottomPedestrianTop + 5);
+                g.DrawString("PED RIGHT", mapFont, Brushes.DimGray,
+                    8, BottomPedestrianTop + PedestrianLaneHeight + 5);
             }
         }
 
