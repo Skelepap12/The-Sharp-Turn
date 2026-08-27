@@ -74,7 +74,9 @@ namespace TheSharpTurn
         {
             if (roadUser.IsChangingLane)
             {
-                MoveAtBestSpeed(roadUser);
+                if (!TryMaintainRoadFollowingDistance(roadUser))
+                    MoveAtBestSpeed(roadUser);
+
                 return;
             }
 
@@ -107,6 +109,10 @@ namespace TheSharpTurn
                         roadUser.OvertakeReturnLane = -1;
                     }
                 }
+
+                if (roadUser.IsOvertaking &&
+                    TryMaintainRoadFollowingDistance(roadUser))
+                    return;
             }
 
             if (!roadUser.IsOvertaking)
@@ -190,6 +196,28 @@ namespace TheSharpTurn
         private int GetRoadBrakingDistance(RoadUser roadUser)
         {
             return 12 + roadUser.ActualSpeed * 8;
+        }
+
+        private bool TryMaintainRoadFollowingDistance(RoadUser roadUser)
+        {
+            RoadUser blocker = FindRoadUserAhead(roadUser);
+
+            if (blocker == null)
+                return false;
+
+            int gap = GetForwardGap(roadUser, blocker);
+            int safeDistance = GetRoadBrakingDistance(roadUser);
+
+            if (gap > safeDistance)
+                return false;
+
+            int followSpeed = blocker.ActualSpeed;
+
+            if (gap < safeDistance && followSpeed > 0)
+                followSpeed--;
+
+            MoveAtBestSpeed(roadUser, followSpeed);
+            return true;
         }
 
         private RoadUser FindRoadUserAhead(RoadUser roadUser)
