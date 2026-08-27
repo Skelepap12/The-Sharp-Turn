@@ -18,6 +18,7 @@ namespace TheSharpTurn
         const int BikeOncomingClearance = 240;
         const int BikeHeadOnDistance = 60;
         const int BikeOvertakeSectionDistance = 280;
+        const int BikeBidirectionalConflictDistance = 220;
         const int BikeLaneChangePadding = 12;
 
         const int PedestrianLaneChangeStep = 6;
@@ -26,6 +27,8 @@ namespace TheSharpTurn
         const int PedestrianOvertakeDistance = 30;
         const int PedestrianPassClearance = 12;
         const int PedestrianHeadOnDistance = 20;
+        const int PedestrianBidirectionalConflictDistance = 120;
+        const int PedestrianConflictCreepSpeed = 1;
         const int PedestrianLaneChangeClearance = 24;
         const int PedestrianLaneChangePadding = 12;
 
@@ -504,6 +507,15 @@ namespace TheSharpTurn
                 return;
             }
 
+            if (IsBicycleBidirectionalConflict(bicycle))
+            {
+                if (TryMaintainBicycleFollowingDistance(bicycle))
+                    return;
+
+                MoveAtBestSpeed(bicycle);
+                return;
+            }
+
             Bicycle blocker = FindBicycleAhead(bicycle, true);
 
             if (blocker != null)
@@ -561,6 +573,44 @@ namespace TheSharpTurn
                 return 6;
 
             return 7;
+        }
+
+        private bool IsBicycleBidirectionalConflict(Bicycle bicycle)
+        {
+            int pairedLane;
+
+            if (bicycle.Lane == 6)
+                pairedLane = 7;
+            else
+                pairedLane = 6;
+
+            return HasOpposingBicycleNearby(bicycle, bicycle.Lane) &&
+                HasOpposingBicycleNearby(bicycle, pairedLane);
+        }
+
+        private bool HasOpposingBicycleNearby(Bicycle bicycle, int lane)
+        {
+            int bicycleCenter = bicycle.X + bicycle.Width / 2;
+
+            for (int i = 0; i < trafficObjects.Count; i++)
+            {
+                TrafficObject current = trafficObjects[i];
+
+                if (current == bicycle || !(current is Bicycle))
+                    continue;
+
+                if (current.Lane != lane ||
+                    current.Direction == bicycle.Direction)
+                    continue;
+
+                int currentCenter = current.X + current.Width / 2;
+
+                if (Math.Abs(currentCenter - bicycleCenter) <=
+                    BikeBidirectionalConflictDistance)
+                    return true;
+            }
+
+            return false;
         }
 
         private bool TryMaintainBicycleFollowingDistance(Bicycle bicycle)
@@ -866,6 +916,9 @@ namespace TheSharpTurn
                 }
             }
 
+            if (HandlePedestrianBidirectionalConflict(pedestrian))
+                return;
+
             Pedestrian sameDirectionBlocker = FindPedestrianAheadInLane(
                 pedestrian, pedestrian.Lane, true);
 
@@ -924,6 +977,78 @@ namespace TheSharpTurn
             }
 
             MoveAtBestSpeed(pedestrian);
+        }
+
+        private bool HandlePedestrianBidirectionalConflict(
+            Pedestrian pedestrian)
+        {
+            if (!IsPedestrianBidirectionalConflict(pedestrian))
+                return false;
+
+            int keepRightLane = GetPedestrianKeepRightLane(pedestrian);
+
+            if (pedestrian.Lane != keepRightLane)
+            {
+                if (TryMovePedestrianToLane(pedestrian, keepRightLane))
+                {
+                    pedestrian.IsOvertaking = false;
+                    pedestrian.OvertakeReturnLane = -1;
+                    MoveAtBestSpeed(pedestrian);
+                    return true;
+                }
+
+                MoveAtBestSpeed(pedestrian,
+                    PedestrianConflictCreepSpeed);
+                return true;
+            }
+
+            if (pedestrian.Direction == TravelDirection.Left)
+            {
+                MoveAtBestSpeed(pedestrian, 0);
+                return true;
+            }
+
+            if (TryMaintainPedestrianFollowingDistance(pedestrian))
+                return true;
+
+            MoveAtBestSpeed(pedestrian);
+            return true;
+        }
+
+        private bool IsPedestrianBidirectionalConflict(
+            Pedestrian pedestrian)
+        {
+            int pairedLane = GetPairedPedestrianLane(pedestrian.Lane);
+
+            return HasOpposingPedestrianNearby(pedestrian,
+                    pedestrian.Lane) &&
+                HasOpposingPedestrianNearby(pedestrian, pairedLane);
+        }
+
+        private bool HasOpposingPedestrianNearby(Pedestrian pedestrian,
+            int lane)
+        {
+            int pedestrianCenter = pedestrian.X + pedestrian.Width / 2;
+
+            for (int i = 0; i < trafficObjects.Count; i++)
+            {
+                TrafficObject current = trafficObjects[i];
+
+                if (current == pedestrian || !(current is Pedestrian))
+                    continue;
+
+                if (current.Lane != lane ||
+                    current.Direction == pedestrian.Direction)
+                    continue;
+
+                int currentCenter = current.X + current.Width / 2;
+
+                if (Math.Abs(currentCenter - pedestrianCenter) <=
+                    PedestrianBidirectionalConflictDistance)
+                    return true;
+            }
+
+            return false;
         }
 
         private bool TryMaintainPedestrianFollowingDistance(
