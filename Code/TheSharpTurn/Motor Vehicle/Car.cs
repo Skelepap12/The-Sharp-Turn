@@ -53,6 +53,22 @@ namespace TheSharpTurn
 
         public override void Draw(Graphics g)
         {
+            string spritePath = "Cars/Sedan_Right.png";
+
+            switch (Model)
+            {
+                case CarModel.SportsCar:
+                    spritePath = "Cars/SportsCar_Right.png";
+                    break;
+
+                case CarModel.Hatchback:
+                    spritePath = "Cars/Hatchback_Right.png";
+                    break;
+            }
+
+            if (SpriteLibrary.Draw(g, spritePath, Bounds, Direction))
+                return;
+
             Brush bodyBrush = Brushes.SteelBlue;
 
             switch (Model)
@@ -68,14 +84,6 @@ namespace TheSharpTurn
 
             g.FillRectangle(bodyBrush, Bounds);
             g.DrawRectangle(Pens.Black, Bounds);
-
-            int windowX;
-            if (Direction == TravelDirection.Right)
-                windowX = X + Width - 12;
-            else
-                windowX = X + 4;
-
-            g.FillRectangle(Brushes.LightGray, windowX, Y + 4, 8, Height - 8);
         }
 
         public override string ToString()

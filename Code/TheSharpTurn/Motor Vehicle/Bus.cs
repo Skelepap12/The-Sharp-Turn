@@ -48,6 +48,10 @@ namespace TheSharpTurn
 
         public override void Draw(Graphics g)
         {
+            if (SpriteLibrary.Draw(g, "Buses/Bus_Right.png", Bounds,
+                Direction))
+                return;
+
             Brush bodyBrush = Brushes.Goldenrod;
 
             if (Model == BusModel.IntercityBus)
@@ -55,9 +59,6 @@ namespace TheSharpTurn
 
             g.FillRectangle(bodyBrush, Bounds);
             g.DrawRectangle(Pens.Black, Bounds);
-
-            for (int i = 6; i < Width - 6; i += 12)
-                g.FillRectangle(Brushes.LightBlue, X + i, Y + 3, 7, 6);
         }
 
         public override string ToString()

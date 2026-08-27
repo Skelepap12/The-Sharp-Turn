@@ -53,34 +53,23 @@ namespace TheSharpTurn
 
         public override void Draw(Graphics g)
         {
-            Pen framePen = Pens.Sienna;
+            string spritePath = "Bicycles/Cruiser_Right.png";
 
             switch (Model)
             {
                 case BicycleModel.BMX:
-                    framePen = Pens.DarkSlateBlue;
+                    spritePath = "Bicycles/BMX_Right.png";
                     break;
 
                 case BicycleModel.MountainBike:
-                    framePen = Pens.ForestGreen;
+                    spritePath = "Bicycles/MountainBike_Right.png";
                     break;
             }
 
-            int wheelSize = Height - 2;
-            int leftCenterX = X + wheelSize / 2;
-            int rightCenterX = X + Width - wheelSize / 2;
-            int centerY = Y + Height / 2;
+            if (SpriteLibrary.Draw(g, spritePath, Bounds, Direction))
+                return;
 
-            g.DrawEllipse(Pens.Black, X, Y + 1, wheelSize, wheelSize);
-            g.DrawEllipse(Pens.Black, X + Width - wheelSize, Y + 1,
-                wheelSize, wheelSize);
-
-            g.DrawLine(framePen, leftCenterX, centerY,
-                X + Width / 2, Y + 2);
-            g.DrawLine(framePen, X + Width / 2, Y + 2,
-                rightCenterX, centerY);
-            g.DrawLine(framePen, leftCenterX, centerY,
-                rightCenterX, centerY);
+            g.DrawRectangle(Pens.Sienna, Bounds);
         }
 
         public override string ToString()

@@ -68,6 +68,32 @@ namespace TheSharpTurn
 
         public override void Draw(Graphics g)
         {
+            string spritePath = "Emergency/Ambulance_Right.png";
+
+            switch (Model)
+            {
+                case EmergencyVehicleModel.FireTruck:
+                    spritePath = "Emergency/FireTruck_Right.png";
+                    break;
+
+                case EmergencyVehicleModel.PoliceCar:
+                    spritePath = "Emergency/PoliceCar_Right.png";
+                    break;
+            }
+
+            if (SpriteLibrary.Draw(g, spritePath, Bounds, Direction))
+            {
+                if (SirenOn)
+                {
+                    int lightY = Y + 2;
+                    int centerX = X + Width / 2;
+                    g.FillRectangle(Brushes.Red, centerX - 5, lightY, 5, 3);
+                    g.FillRectangle(Brushes.Blue, centerX, lightY, 5, 3);
+                }
+
+                return;
+            }
+
             Brush bodyBrush = Brushes.White;
 
             switch (Model)
@@ -83,14 +109,6 @@ namespace TheSharpTurn
 
             g.FillRectangle(bodyBrush, Bounds);
             g.DrawRectangle(Pens.Black, Bounds);
-
-            Brush lightBrush;
-            if (SirenOn)
-                lightBrush = Brushes.Red;
-            else
-                lightBrush = Brushes.Gray;
-
-            g.FillRectangle(lightBrush, X + Width / 2 - 5, Y + 2, 10, 4);
         }
 
         public override string ToString()

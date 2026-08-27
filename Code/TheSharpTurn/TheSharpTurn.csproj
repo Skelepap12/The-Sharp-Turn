@@ -40,6 +40,7 @@
     <Compile Include="Core\TrafficObject.cs" />
     <Compile Include="Core\TrafficObjectFile.cs" />
     <Compile Include="Core\TrafficObjectList.cs" />
+    <Compile Include="Core\SpriteLibrary.cs" />
     <Compile Include="Motor Vehicle\RoadUser.cs" />
     <Compile Include="Motor Vehicle\Car.cs" />
     <Compile Include="Motor Vehicle\Motorcycle.cs" />
@@ -63,6 +64,10 @@
   <ItemGroup>
     <Content Include="..\..\Assets\Audio\*.wav">
       <Link>Audio\%(Filename)%(Extension)</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="..\..\Assets\Sprites\**\*.png">
+      <Link>Sprites\%(RecursiveDir)%(Filename)%(Extension)</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>

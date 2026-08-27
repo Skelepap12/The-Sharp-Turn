@@ -36,21 +36,21 @@ namespace TheSharpTurn
 
         public override void Draw(Graphics g)
         {
+            string spritePath = "Pedestrians/Male_Right.png";
+
+            if (Model == PedestrianModel.Female)
+                spritePath = "Pedestrians/Female_Right.png";
+
+            if (SpriteLibrary.Draw(g, spritePath, Bounds, Direction))
+                return;
+
             Brush bodyBrush = Brushes.SteelBlue;
 
             if (Model == PedestrianModel.Female)
                 bodyBrush = Brushes.MediumPurple;
 
-            int headSize = 8;
-            int headX = X + (Width - headSize) / 2;
-
-            g.FillEllipse(Brushes.PeachPuff, headX, Y, headSize, headSize);
-            g.DrawEllipse(Pens.Black, headX, Y, headSize, headSize);
-
-            g.FillRectangle(bodyBrush, X + 2, Y + headSize,
-                Width - 4, Height - headSize);
-            g.DrawRectangle(Pens.Black, X + 2, Y + headSize,
-                Width - 4, Height - headSize);
+            g.FillRectangle(bodyBrush, Bounds);
+            g.DrawRectangle(Pens.Black, Bounds);
         }
 
         public override string ToString()

@@ -49,20 +49,21 @@ namespace TheSharpTurn
 
         public override void Draw(Graphics g)
         {
+            string spritePath = "Motorcycles/SportsBike_Right.png";
+
+            if (Model == MotorcycleModel.Chopper)
+                spritePath = "Motorcycles/Chopper_Right.png";
+
+            if (SpriteLibrary.Draw(g, spritePath, Bounds, Direction))
+                return;
+
             Brush bodyBrush = Brushes.OrangeRed;
 
             if (Model == MotorcycleModel.Chopper)
                 bodyBrush = Brushes.SaddleBrown;
 
-            int wheelSize = Height - 2;
-
-            g.DrawEllipse(Pens.Black, X, Y + 1, wheelSize, wheelSize);
-            g.DrawEllipse(Pens.Black, X + Width - wheelSize, Y + 1,
-                wheelSize, wheelSize);
-
-            g.FillRectangle(bodyBrush, X + 7, Y + 3, Width - 14, Height - 6);
-            g.DrawRectangle(Pens.Black, X + 7, Y + 3,
-                Width - 14, Height - 6);
+            g.FillRectangle(bodyBrush, Bounds);
+            g.DrawRectangle(Pens.Black, Bounds);
         }
 
         public override string ToString()
