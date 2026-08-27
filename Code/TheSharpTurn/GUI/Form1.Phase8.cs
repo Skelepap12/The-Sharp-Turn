@@ -9,7 +9,6 @@ namespace TheSharpTurn
         const int LogicalMapWidth = 970;
         const int LogicalMapHeight = 580;
 
-        Button buttonFullscreen;
         PictureBox pictureBoxDisplay;
         Panel panelFocusMode;
         Label labelFocusModeTitle;
@@ -18,17 +17,19 @@ namespace TheSharpTurn
         bool focusModeActive = false;
         bool fullscreenActive = false;
         Rectangle windowedBounds;
+        FormWindowState windowStateBeforeFullscreen = FormWindowState.Normal;
 
         protected override void OnLoad(EventArgs e)
         {
             base.OnLoad(e);
 
+            this.FormBorderStyle = FormBorderStyle.Sizable;
+            this.MaximizeBox = true;
             windowedBounds = this.Bounds;
             this.MinimumSize = new Size(800, 650);
 
             CreatePhase8Controls();
 
-            buttonFullscreen.Click += new EventHandler(buttonFullscreen_Click);
             this.Resize += new EventHandler(Form1_Resize_Phase8);
             this.KeyDown += new KeyEventHandler(Form1_KeyDown_Phase8);
             buttonManual.Click += new EventHandler(UpdatePhase8AfterAction);
@@ -53,13 +54,6 @@ namespace TheSharpTurn
 
             pictureBoxMap.Size = new Size(LogicalMapWidth, LogicalMapHeight);
             pictureBoxMap.Visible = false;
-
-            buttonFullscreen = new Button();
-            buttonFullscreen.Name = "buttonFullscreen";
-            buttonFullscreen.Size = new Size(105, 30);
-            buttonFullscreen.Text = "Fullscreen";
-            buttonFullscreen.UseVisualStyleBackColor = true;
-            this.Controls.Add(buttonFullscreen);
 
             panelFocusMode = new Panel();
             panelFocusMode.Name = "panelFocusMode";
@@ -87,28 +81,34 @@ namespace TheSharpTurn
             panelFocusMode.BringToFront();
         }
 
-        private void buttonFullscreen_Click(object sender, EventArgs e)
-        {
-            ToggleFullscreen();
-        }
-
         private void ToggleFullscreen()
         {
             if (!fullscreenActive)
             {
-                windowedBounds = this.Bounds;
+                windowStateBeforeFullscreen = this.WindowState;
+
+                if (this.WindowState == FormWindowState.Normal)
+                    windowedBounds = this.Bounds;
+                else
+                    windowedBounds = this.RestoreBounds;
+
+                this.WindowState = FormWindowState.Normal;
                 this.FormBorderStyle = FormBorderStyle.None;
                 this.WindowState = FormWindowState.Maximized;
                 fullscreenActive = true;
-                buttonFullscreen.Text = "Windowed";
             }
             else
             {
                 this.WindowState = FormWindowState.Normal;
-                this.FormBorderStyle = FormBorderStyle.FixedSingle;
-                this.Bounds = windowedBounds;
+                this.FormBorderStyle = FormBorderStyle.Sizable;
+                this.MaximizeBox = true;
+
+                if (windowStateBeforeFullscreen == FormWindowState.Maximized)
+                    this.WindowState = FormWindowState.Maximized;
+                else
+                    this.Bounds = windowedBounds;
+
                 fullscreenActive = false;
-                buttonFullscreen.Text = "Fullscreen";
             }
 
             UpdatePhase8Layout();
@@ -265,7 +265,6 @@ namespace TheSharpTurn
             labelTitle.Visible = visible;
             buttonSave.Visible = visible;
             buttonLoad.Visible = visible;
-            buttonFullscreen.Visible = visible;
             panelControls.Visible = visible;
             labelStatus.Visible = visible;
         }
@@ -350,8 +349,6 @@ namespace TheSharpTurn
                 this.ClientSize.Width - Margin - buttonLoad.Width, 14);
             buttonSave.Location = new Point(
                 buttonLoad.Left - buttonSave.Width - 6, 14);
-            buttonFullscreen.Location = new Point(
-                buttonSave.Left - buttonFullscreen.Width - 6, 14);
 
             int statusTop = this.ClientSize.Height - 40;
             int contentHeight = statusTop - ContentTop - 13;
