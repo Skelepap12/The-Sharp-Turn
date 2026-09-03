@@ -54,11 +54,14 @@ namespace TheSharpTurn
         public override void Draw(Graphics g)
         {
             string spritePath = "Bicycles/Cruiser_Right.png";
+            Rectangle drawBounds = new Rectangle(X - 4, Y - 3,
+                Width + 8, Height + 6);
 
             switch (Model)
             {
                 case BicycleModel.BMX:
                     spritePath = "Bicycles/BMX_Right.png";
+                    drawBounds = Bounds;
                     break;
 
                 case BicycleModel.MountainBike:
@@ -66,7 +69,7 @@ namespace TheSharpTurn
                     break;
             }
 
-            if (SpriteLibrary.Draw(g, spritePath, Bounds, Direction))
+            if (SpriteLibrary.Draw(g, spritePath, drawBounds, Direction))
                 return;
 
             g.DrawRectangle(Pens.Sienna, Bounds);

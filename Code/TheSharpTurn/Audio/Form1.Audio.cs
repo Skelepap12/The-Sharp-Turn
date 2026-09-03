@@ -53,7 +53,13 @@ namespace TheSharpTurn
             }
             else if (manualObject is Pedestrian)
             {
-                PlayActionSound("pedestrian_shout.wav", 15);
+                Pedestrian pedestrian = (Pedestrian)manualObject;
+
+                if (pedestrian.Model == PedestrianModel.Female)
+                    PlayActionSound("pedestrian_female_shout.wav", 32);
+                else
+                    PlayActionSound("pedestrian_shout.wav", 15);
+
                 labelStatus.Text = "Pedestrian shout.";
             }
             else if (manualObject is RoadUser)

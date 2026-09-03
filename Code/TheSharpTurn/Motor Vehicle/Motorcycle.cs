@@ -54,7 +54,12 @@ namespace TheSharpTurn
             if (Model == MotorcycleModel.Chopper)
                 spritePath = "Motorcycles/Chopper_Right.png";
 
-            if (SpriteLibrary.Draw(g, spritePath, Bounds, Direction))
+            TravelDirection spriteDirection = TravelDirection.Right;
+
+            if (Direction == TravelDirection.Right)
+                spriteDirection = TravelDirection.Left;
+
+            if (SpriteLibrary.Draw(g, spritePath, Bounds, spriteDirection))
                 return;
 
             Brush bodyBrush = Brushes.OrangeRed;

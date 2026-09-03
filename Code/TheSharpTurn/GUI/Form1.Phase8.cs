@@ -64,15 +64,15 @@ namespace TheSharpTurn
 
             labelFocusModeTitle = new Label();
             labelFocusModeTitle.Location = new Point(14, 10);
-            labelFocusModeTitle.Size = new Size(190, 50);
-            labelFocusModeTitle.Font = new Font("Segoe UI", 11F, FontStyle.Bold);
+            labelFocusModeTitle.Size = new Size(230, 50);
+            labelFocusModeTitle.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
             labelFocusModeTitle.ForeColor = Color.White;
             labelFocusModeTitle.TextAlign = ContentAlignment.MiddleLeft;
             labelFocusModeTitle.Text = "DRIVE MODE";
 
             labelFocusModeInstructions = new Label();
-            labelFocusModeInstructions.Location = new Point(210, 8);
-            labelFocusModeInstructions.Size = new Size(536, 54);
+            labelFocusModeInstructions.Location = new Point(250, 8);
+            labelFocusModeInstructions.Size = new Size(496, 54);
             labelFocusModeInstructions.Font = new Font("Segoe UI", 9F, FontStyle.Regular);
             labelFocusModeInstructions.ForeColor = Color.White;
             labelFocusModeInstructions.TextAlign = ContentAlignment.MiddleLeft;
@@ -163,6 +163,8 @@ namespace TheSharpTurn
             e.Graphics.TranslateTransform(offsetX, offsetY);
             e.Graphics.ScaleTransform(scale, scale);
             e.Graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.HighQuality;
+            e.Graphics.SetClip(new Rectangle(0, 0,
+                LogicalMapWidth, LogicalMapHeight));
 
             DrawMap(e.Graphics);
             trafficObjects.DrawAll(e.Graphics);
@@ -273,33 +275,46 @@ namespace TheSharpTurn
 
         private void UpdateFocusModeText()
         {
+            string modeTitle = "DRIVE MODE";
+
             if (manualObject is EmergencyVehicle)
             {
-                labelFocusModeTitle.Text = "EMERGENCY DRIVE MODE";
+                modeTitle = "EMERGENCY DRIVE MODE";
                 labelFocusModeInstructions.Text =
                     "W / Up: Speed up   S / Down: Slow down   A / Left: Move left   D / Right: Move right\r\n" +
                     "Space: Brake   H: Toggle siren   Esc or any mouse click on the map: Exit";
             }
             else if (manualObject is Bicycle)
             {
-                labelFocusModeTitle.Text = "CYCLE MODE";
+                modeTitle = "CYCLE MODE";
                 labelFocusModeInstructions.Text =
                     "W / Up: Speed up   S / Down: Slow down   A / Left: Move left   D / Right: Move right\r\n" +
                     "Space: Brake   H: Bike horn   Esc or any mouse click on the map: Exit";
             }
             else if (manualObject is Pedestrian)
             {
-                labelFocusModeTitle.Text = "WALK MODE";
+                modeTitle = "WALK MODE";
                 labelFocusModeInstructions.Text =
                     "W / Up: Speed up   S / Down: Slow down   A / Left: Move left   D / Right: Move right\r\n" +
                     "Space: Stop   H: Shout   Esc or any mouse click on the map: Exit";
             }
             else
             {
-                labelFocusModeTitle.Text = "DRIVE MODE";
                 labelFocusModeInstructions.Text =
                     "W / Up: Speed up   S / Down: Slow down   A / Left: Move left   D / Right: Move right\r\n" +
                     "Space: Brake   H: Horn   Esc or any mouse click on the map: Exit";
+            }
+
+            if (manualObject != null)
+            {
+                labelFocusModeTitle.Text = modeTitle + "\r\nLANE " +
+                    manualObject.Lane.ToString() + "    SPEED " +
+                    manualObject.ActualSpeed.ToString() + " / " +
+                    manualObject.MaximumSpeed.ToString();
+            }
+            else
+            {
+                labelFocusModeTitle.Text = modeTitle;
             }
         }
 
@@ -384,10 +399,10 @@ namespace TheSharpTurn
             panelFocusMode.Size = new Size(headerWidth, HeaderHeight);
 
             labelFocusModeTitle.Location = new Point(14, 10);
-            labelFocusModeTitle.Size = new Size(190, 50);
-            labelFocusModeInstructions.Location = new Point(210, 8);
+            labelFocusModeTitle.Size = new Size(230, 50);
+            labelFocusModeInstructions.Location = new Point(250, 8);
 
-            int instructionsWidth = panelFocusMode.ClientSize.Width - 222;
+            int instructionsWidth = panelFocusMode.ClientSize.Width - 262;
             if (instructionsWidth < 100)
                 instructionsWidth = 100;
 
