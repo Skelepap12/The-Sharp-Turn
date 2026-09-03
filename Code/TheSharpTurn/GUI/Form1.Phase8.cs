@@ -29,6 +29,7 @@ namespace TheSharpTurn
             this.MinimumSize = new Size(800, 650);
 
             CreatePhase8Controls();
+            ApplyPhase8Style();
 
             this.Resize += new EventHandler(Form1_Resize_Phase8);
             this.KeyDown += new KeyEventHandler(Form1_KeyDown_Phase8);
@@ -50,38 +51,204 @@ namespace TheSharpTurn
             pictureBoxDisplay.TabStop = false;
             pictureBoxDisplay.Paint += new PaintEventHandler(
                 pictureBoxDisplay_Paint_MetroCity);
-            pictureBoxDisplay.MouseDown += new MouseEventHandler(pictureBoxDisplay_MouseDown);
+            pictureBoxDisplay.MouseDown += new MouseEventHandler(
+                pictureBoxDisplay_MouseDown);
             this.Controls.Add(pictureBoxDisplay);
 
             pictureBoxMap.Size = new Size(LogicalMapWidth, LogicalMapHeight);
             pictureBoxMap.Visible = false;
 
+            Panel selectedDivider = new Panel();
+            selectedDivider.Name = "selectedDivider";
+            selectedDivider.Location = new Point(16, 280);
+            selectedDivider.Size = new Size(216, 1);
+            selectedDivider.Anchor = AnchorStyles.Top |
+                AnchorStyles.Left | AnchorStyles.Right;
+            panelControls.Controls.Add(selectedDivider);
+
             panelFocusMode = new Panel();
             panelFocusMode.Name = "panelFocusMode";
             panelFocusMode.Size = new Size(760, 72);
-            panelFocusMode.BackColor = Color.FromArgb(40, 40, 40);
             panelFocusMode.BorderStyle = BorderStyle.FixedSingle;
             panelFocusMode.Visible = false;
+
+            Panel focusAccent = new Panel();
+            focusAccent.Name = "focusAccent";
+            focusAccent.Dock = DockStyle.Top;
+            focusAccent.Height = 2;
 
             labelFocusModeTitle = new Label();
             labelFocusModeTitle.Location = new Point(14, 10);
             labelFocusModeTitle.Size = new Size(230, 50);
-            labelFocusModeTitle.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
-            labelFocusModeTitle.ForeColor = Color.White;
             labelFocusModeTitle.TextAlign = ContentAlignment.MiddleLeft;
             labelFocusModeTitle.Text = "DRIVE MODE";
 
             labelFocusModeInstructions = new Label();
             labelFocusModeInstructions.Location = new Point(250, 8);
             labelFocusModeInstructions.Size = new Size(496, 54);
-            labelFocusModeInstructions.Font = new Font("Segoe UI", 9F, FontStyle.Regular);
-            labelFocusModeInstructions.ForeColor = Color.White;
             labelFocusModeInstructions.TextAlign = ContentAlignment.MiddleLeft;
 
+            panelFocusMode.Controls.Add(focusAccent);
             panelFocusMode.Controls.Add(labelFocusModeTitle);
             panelFocusMode.Controls.Add(labelFocusModeInstructions);
             this.Controls.Add(panelFocusMode);
             panelFocusMode.BringToFront();
+        }
+
+        private void ApplyPhase8Style()
+        {
+            Color formBack = Color.FromArgb(22, 23, 22);
+            Color panelBack = Color.FromArgb(31, 32, 31);
+            Color panelRaised = Color.FromArgb(41, 42, 40);
+            Color inputBack = Color.FromArgb(47, 48, 46);
+            Color cream = Color.FromArgb(232, 226, 202);
+            Color muted = Color.FromArgb(164, 161, 149);
+            Color gold = Color.FromArgb(196, 157, 74);
+            Color danger = Color.FromArgb(191, 105, 92);
+
+            this.BackColor = formBack;
+            this.ForeColor = cream;
+
+            labelTitle.Text = "THE SHARP TURN";
+            labelTitle.Font = new Font("Consolas", 16F, FontStyle.Bold);
+            labelTitle.ForeColor = cream;
+
+            StyleDarkButton(buttonSave, panelRaised, cream, gold);
+            StyleDarkButton(buttonLoad, panelRaised, cream, gold);
+
+            panelControls.BackColor = panelBack;
+            panelControls.ForeColor = cream;
+
+            labelObjectMenu.Text = "CREATE OBJECT";
+            labelObjectMenu.Font = new Font("Consolas", 11F, FontStyle.Bold);
+            labelObjectMenu.ForeColor = gold;
+            labelObjectMenu.Location = new Point(16, 14);
+
+            labelType.Text = "TYPE";
+            labelType.Location = new Point(16, 50);
+            StyleFieldLabel(labelType, muted);
+
+            comboType.Location = new Point(16, 70);
+            comboType.Size = new Size(216, 24);
+            StyleComboBox(comboType, inputBack, cream);
+
+            labelModel.Text = "MODEL";
+            labelModel.Location = new Point(16, 108);
+            StyleFieldLabel(labelModel, muted);
+
+            comboModel.Location = new Point(16, 128);
+            comboModel.Size = new Size(216, 24);
+            StyleComboBox(comboModel, inputBack, cream);
+
+            labelSpeed.Text = "DESIRED SPEED";
+            labelSpeed.Location = new Point(16, 166);
+            StyleFieldLabel(labelSpeed, muted);
+
+            numSpeed.Location = new Point(16, 186);
+            numSpeed.Size = new Size(216, 24);
+            numSpeed.BackColor = inputBack;
+            numSpeed.ForeColor = cream;
+            numSpeed.BorderStyle = BorderStyle.FixedSingle;
+            numSpeed.Font = new Font("Consolas", 9F, FontStyle.Regular);
+
+            buttonAdd.Location = new Point(16, 226);
+            buttonAdd.Size = new Size(216, 44);
+            buttonAdd.Text = "ADD OBJECT";
+            StyleAccentButton(buttonAdd, gold, formBack);
+
+            Control[] dividerControls = panelControls.Controls.Find(
+                "selectedDivider", false);
+            if (dividerControls.Length > 0)
+                dividerControls[0].BackColor = Color.FromArgb(78, 76, 68);
+
+            labelSelectedTitle.Text = "SELECTED";
+            labelSelectedTitle.Location = new Point(16, 294);
+            labelSelectedTitle.Font = new Font("Consolas", 10F,
+                FontStyle.Bold);
+            labelSelectedTitle.ForeColor = gold;
+
+            labelSelected.Location = new Point(16, 320);
+            labelSelected.Size = new Size(216, 74);
+            labelSelected.BackColor = panelRaised;
+            labelSelected.ForeColor = cream;
+            labelSelected.BorderStyle = BorderStyle.FixedSingle;
+            labelSelected.Font = new Font("Consolas", 8.5F,
+                FontStyle.Regular);
+            labelSelected.Padding = new Padding(8, 5, 8, 5);
+            labelSelected.TextAlign = ContentAlignment.MiddleLeft;
+
+            buttonManual.Location = new Point(16, 410);
+            buttonManual.Size = new Size(216, 46);
+            StyleDarkButton(buttonManual, panelRaised, cream, gold);
+
+            buttonDelete.Location = new Point(16, 468);
+            buttonDelete.Size = new Size(216, 40);
+            StyleDarkButton(buttonDelete, panelRaised, danger, danger);
+
+            labelStatus.BackColor = panelBack;
+            labelStatus.ForeColor = muted;
+            labelStatus.BorderStyle = BorderStyle.FixedSingle;
+            labelStatus.Font = new Font("Consolas", 8.5F,
+                FontStyle.Regular);
+            labelStatus.Padding = new Padding(8, 0, 8, 0);
+
+            pictureBoxDisplay.BackColor = Color.FromArgb(15, 15, 15);
+            pictureBoxDisplay.BorderStyle = BorderStyle.FixedSingle;
+
+            panelFocusMode.BackColor = panelBack;
+            panelFocusMode.ForeColor = cream;
+
+            Control[] focusAccentControls = panelFocusMode.Controls.Find(
+                "focusAccent", false);
+            if (focusAccentControls.Length > 0)
+                focusAccentControls[0].BackColor = gold;
+
+            labelFocusModeTitle.Font = new Font("Consolas", 10F,
+                FontStyle.Bold);
+            labelFocusModeTitle.ForeColor = gold;
+
+            labelFocusModeInstructions.Font = new Font("Consolas", 8.5F,
+                FontStyle.Regular);
+            labelFocusModeInstructions.ForeColor = cream;
+        }
+
+        private void StyleFieldLabel(Label label, Color color)
+        {
+            label.Font = new Font("Consolas", 8F, FontStyle.Bold);
+            label.ForeColor = color;
+        }
+
+        private void StyleComboBox(ComboBox comboBox, Color backColor,
+            Color foreColor)
+        {
+            comboBox.BackColor = backColor;
+            comboBox.ForeColor = foreColor;
+            comboBox.FlatStyle = FlatStyle.Flat;
+            comboBox.Font = new Font("Consolas", 9F, FontStyle.Regular);
+        }
+
+        private void StyleDarkButton(Button button, Color backColor,
+            Color foreColor, Color borderColor)
+        {
+            button.UseVisualStyleBackColor = false;
+            button.FlatStyle = FlatStyle.Flat;
+            button.FlatAppearance.BorderSize = 1;
+            button.FlatAppearance.BorderColor = borderColor;
+            button.BackColor = backColor;
+            button.ForeColor = foreColor;
+            button.Font = new Font("Consolas", 9F, FontStyle.Bold);
+        }
+
+        private void StyleAccentButton(Button button, Color backColor,
+            Color foreColor)
+        {
+            button.UseVisualStyleBackColor = false;
+            button.FlatStyle = FlatStyle.Flat;
+            button.FlatAppearance.BorderSize = 1;
+            button.FlatAppearance.BorderColor = backColor;
+            button.BackColor = backColor;
+            button.ForeColor = foreColor;
+            button.Font = new Font("Consolas", 9F, FontStyle.Bold);
         }
 
         private void ToggleFullscreen()
@@ -106,7 +273,8 @@ namespace TheSharpTurn
                 this.FormBorderStyle = FormBorderStyle.Sizable;
                 this.MaximizeBox = true;
 
-                if (windowStateBeforeFullscreen == FormWindowState.Maximized)
+                if (windowStateBeforeFullscreen ==
+                    FormWindowState.Maximized)
                     this.WindowState = FormWindowState.Maximized;
                 else
                     this.Bounds = windowedBounds;
@@ -148,42 +316,13 @@ namespace TheSharpTurn
             pictureBoxDisplay.Invalidate();
         }
 
-        private void pictureBoxDisplay_Paint(object sender, PaintEventArgs e)
-        {
-            e.Graphics.Clear(Color.FromArgb(35, 35, 35));
-
-            float scale = GetMapScale();
-            if (scale <= 0)
-                return;
-
-            int drawWidth = (int)(LogicalMapWidth * scale);
-            int drawHeight = (int)(LogicalMapHeight * scale);
-            int offsetX = (pictureBoxDisplay.ClientSize.Width - drawWidth) / 2;
-            int offsetY = (pictureBoxDisplay.ClientSize.Height - drawHeight) / 2;
-
-            e.Graphics.TranslateTransform(offsetX, offsetY);
-            e.Graphics.ScaleTransform(scale, scale);
-            e.Graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.HighQuality;
-            e.Graphics.SetClip(new Rectangle(0, 0,
-                LogicalMapWidth, LogicalMapHeight));
-
-            DrawMap(e.Graphics);
-            trafficObjects.DrawAll(e.Graphics);
-
-            if (curIndex >= 0 && curIndex < trafficObjects.Count)
-            {
-                Rectangle selectedBounds = trafficObjects[curIndex].Bounds;
-                selectedBounds.Inflate(3, 3);
-                e.Graphics.DrawRectangle(Pens.Gold, selectedBounds);
-            }
-        }
-
-        private void pictureBoxDisplay_MouseDown(object sender, MouseEventArgs e)
+        private void pictureBoxDisplay_MouseDown(object sender,
+            MouseEventArgs e)
         {
             if (manualObject != null)
             {
-                MouseEventArgs exitEvent = new MouseEventArgs(e.Button, e.Clicks,
-                    0, 0, e.Delta);
+                MouseEventArgs exitEvent = new MouseEventArgs(e.Button,
+                    e.Clicks, 0, 0, e.Delta);
                 pictureBoxMap_MouseDown(pictureBoxMap, exitEvent);
                 UpdatePhase8State();
                 pictureBoxDisplay.Invalidate();
@@ -193,11 +332,12 @@ namespace TheSharpTurn
             int logicalX;
             int logicalY;
 
-            if (!TryGetLogicalMapPoint(e.X, e.Y, out logicalX, out logicalY))
+            if (!TryGetLogicalMapPoint(e.X, e.Y,
+                out logicalX, out logicalY))
                 return;
 
-            MouseEventArgs logicalEvent = new MouseEventArgs(e.Button, e.Clicks,
-                logicalX, logicalY, e.Delta);
+            MouseEventArgs logicalEvent = new MouseEventArgs(e.Button,
+                e.Clicks, logicalX, logicalY, e.Delta);
             pictureBoxMap_MouseDown(pictureBoxMap, logicalEvent);
             UpdatePhase8State();
             pictureBoxDisplay.Invalidate();
@@ -229,11 +369,15 @@ namespace TheSharpTurn
 
             int drawWidth = (int)(LogicalMapWidth * scale);
             int drawHeight = (int)(LogicalMapHeight * scale);
-            int offsetX = (pictureBoxDisplay.ClientSize.Width - drawWidth) / 2;
-            int offsetY = (pictureBoxDisplay.ClientSize.Height - drawHeight) / 2;
+            int offsetX =
+                (pictureBoxDisplay.ClientSize.Width - drawWidth) / 2;
+            int offsetY =
+                (pictureBoxDisplay.ClientSize.Height - drawHeight) / 2;
 
-            if (displayX < offsetX || displayX >= offsetX + drawWidth ||
-                displayY < offsetY || displayY >= offsetY + drawHeight)
+            if (displayX < offsetX ||
+                displayX >= offsetX + drawWidth ||
+                displayY < offsetY ||
+                displayY >= offsetY + drawHeight)
                 return false;
 
             logicalX = (int)((displayX - offsetX) / scale);
@@ -260,6 +404,8 @@ namespace TheSharpTurn
 
             if (focusModeActive)
                 UpdateFocusModeText();
+            else
+                buttonManual.Text = "CONTROL SELECTED";
 
             RefreshSelectedInfoDisplay();
             UpdatePhase8Layout();
@@ -282,34 +428,41 @@ namespace TheSharpTurn
             {
                 modeTitle = "EMERGENCY DRIVE MODE";
                 labelFocusModeInstructions.Text =
-                    "W / Up: Speed up   S / Down: Slow down   A / Left: Move left   D / Right: Move right\r\n" +
-                    "Space: Brake   H: Toggle siren   Esc or any mouse click on the map: Exit";
+                    "W / Up: Speed up   S / Down: Slow down   " +
+                    "A / Left: Move left   D / Right: Move right\r\n" +
+                    "Space: Brake   H: Toggle siren   " +
+                    "Esc or map click: Exit";
             }
             else if (manualObject is Bicycle)
             {
                 modeTitle = "CYCLE MODE";
                 labelFocusModeInstructions.Text =
-                    "W / Up: Speed up   S / Down: Slow down   A / Left: Move left   D / Right: Move right\r\n" +
-                    "Space: Brake   H: Bike horn   Esc or any mouse click on the map: Exit";
+                    "W / Up: Speed up   S / Down: Slow down   " +
+                    "A / Left: Move left   D / Right: Move right\r\n" +
+                    "Space: Brake   H: Bike horn   " +
+                    "Esc or map click: Exit";
             }
             else if (manualObject is Pedestrian)
             {
                 modeTitle = "WALK MODE";
                 labelFocusModeInstructions.Text =
-                    "W / Up: Speed up   S / Down: Slow down   A / Left: Move left   D / Right: Move right\r\n" +
-                    "Space: Stop   H: Shout   Esc or any mouse click on the map: Exit";
+                    "W / Up: Speed up   S / Down: Slow down   " +
+                    "A / Left: Move left   D / Right: Move right\r\n" +
+                    "Space: Stop   H: Shout   Esc or map click: Exit";
             }
             else
             {
                 labelFocusModeInstructions.Text =
-                    "W / Up: Speed up   S / Down: Slow down   A / Left: Move left   D / Right: Move right\r\n" +
-                    "Space: Brake   H: Horn   Esc or any mouse click on the map: Exit";
+                    "W / Up: Speed up   S / Down: Slow down   " +
+                    "A / Left: Move left   D / Right: Move right\r\n" +
+                    "Space: Brake   H: Horn   Esc or map click: Exit";
             }
 
             if (manualObject != null)
             {
-                labelFocusModeTitle.Text = modeTitle + "\r\nLANE " +
-                    manualObject.Lane.ToString() + "    SPEED " +
+                labelFocusModeTitle.Text = modeTitle +
+                    "\r\nLANE " + manualObject.Lane.ToString() +
+                    "    SPEED " +
                     manualObject.ActualSpeed.ToString() + " / " +
                     manualObject.MaximumSpeed.ToString();
             }
@@ -324,14 +477,15 @@ namespace TheSharpTurn
             if (curIndex >= 0 && curIndex < trafficObjects.Count)
             {
                 TrafficObject obj = trafficObjects[curIndex];
-                labelSelected.Text = "Selected: " + obj.ToString() +
-                    "\r\nLane: " + obj.Lane.ToString() +
-                    "\r\nSpeed: " + obj.ActualSpeed.ToString() +
+
+                labelSelected.Text = obj.ToString() +
+                    "\r\nLANE  " + obj.Lane.ToString() +
+                    "\r\nSPEED " + obj.ActualSpeed.ToString() +
                     " / " + obj.MaximumSpeed.ToString();
             }
             else
             {
-                labelSelected.Text = "Selected: none";
+                labelSelected.Text = "No object selected.";
             }
         }
 
@@ -350,36 +504,46 @@ namespace TheSharpTurn
         {
             const int Margin = 12;
             const int SidePanelWidth = 250;
-            const int Gap = 18;
+            const int Gap = 12;
             const int ContentTop = 58;
 
-            labelTitle.Location = new Point(Margin, 10);
+            labelTitle.Location = new Point(Margin, 11);
+
+            buttonLoad.Size = new Size(82, 30);
+            buttonSave.Size = new Size(82, 30);
 
             buttonLoad.Location = new Point(
                 this.ClientSize.Width - Margin - buttonLoad.Width, 14);
             buttonSave.Location = new Point(
-                buttonLoad.Left - buttonSave.Width - 6, 14);
+                buttonLoad.Left - buttonSave.Width - 7, 14);
 
-            int statusTop = this.ClientSize.Height - 40;
-            int contentHeight = statusTop - ContentTop - 13;
+            int statusTop = this.ClientSize.Height - 39;
+            int contentHeight = statusTop - ContentTop - 12;
 
             if (contentHeight < 200)
                 contentHeight = 200;
 
             panelControls.Location = new Point(Margin, ContentTop);
-            panelControls.Size = new Size(SidePanelWidth, contentHeight);
+            panelControls.Size = new Size(
+                SidePanelWidth, contentHeight);
 
-            int displayLeft = Margin + SidePanelWidth + Gap;
-            int displayWidth = this.ClientSize.Width - displayLeft - Margin;
+            int displayLeft =
+                Margin + SidePanelWidth + Gap;
+            int displayWidth =
+                this.ClientSize.Width - displayLeft - Margin;
 
             if (displayWidth < 100)
                 displayWidth = 100;
 
-            pictureBoxDisplay.Location = new Point(displayLeft, ContentTop);
-            pictureBoxDisplay.Size = new Size(displayWidth, contentHeight);
+            pictureBoxDisplay.Location =
+                new Point(displayLeft, ContentTop);
+            pictureBoxDisplay.Size =
+                new Size(displayWidth, contentHeight);
 
-            labelStatus.Location = new Point(Margin, statusTop);
-            labelStatus.Size = new Size(this.ClientSize.Width - Margin * 2, 28);
+            labelStatus.Location =
+                new Point(Margin, statusTop);
+            labelStatus.Size =
+                new Size(this.ClientSize.Width - Margin * 2, 27);
 
             pictureBoxDisplay.SendToBack();
             panelControls.BringToFront();
@@ -391,34 +555,45 @@ namespace TheSharpTurn
             const int HeaderHeight = 72;
             const int HeaderGap = 8;
 
-            int headerWidth = this.ClientSize.Width - Margin * 2;
+            int headerWidth =
+                this.ClientSize.Width - Margin * 2;
 
             if (headerWidth < 300)
                 headerWidth = 300;
 
-            panelFocusMode.Location = new Point(Margin, Margin);
-            panelFocusMode.Size = new Size(headerWidth, HeaderHeight);
+            panelFocusMode.Location =
+                new Point(Margin, Margin);
+            panelFocusMode.Size =
+                new Size(headerWidth, HeaderHeight);
 
-            labelFocusModeTitle.Location = new Point(14, 10);
-            labelFocusModeTitle.Size = new Size(230, 50);
-            labelFocusModeInstructions.Location = new Point(250, 8);
+            labelFocusModeTitle.Location =
+                new Point(14, 10);
+            labelFocusModeTitle.Size =
+                new Size(230, 50);
+            labelFocusModeInstructions.Location =
+                new Point(250, 8);
 
-            int instructionsWidth = panelFocusMode.ClientSize.Width - 262;
+            int instructionsWidth =
+                panelFocusMode.ClientSize.Width - 262;
             if (instructionsWidth < 100)
                 instructionsWidth = 100;
 
-            labelFocusModeInstructions.Size = new Size(instructionsWidth, 54);
+            labelFocusModeInstructions.Size =
+                new Size(instructionsWidth, 54);
 
-            int mapTop = Margin + HeaderHeight + HeaderGap;
-            int mapHeight = this.ClientSize.Height - mapTop - Margin;
+            int mapTop =
+                Margin + HeaderHeight + HeaderGap;
+            int mapHeight =
+                this.ClientSize.Height - mapTop - Margin;
 
             if (mapHeight < 100)
                 mapHeight = 100;
 
-            pictureBoxDisplay.Location = new Point(Margin, mapTop);
-            pictureBoxDisplay.Size = new Size(
-                this.ClientSize.Width - Margin * 2,
-                mapHeight);
+            pictureBoxDisplay.Location =
+                new Point(Margin, mapTop);
+            pictureBoxDisplay.Size =
+                new Size(this.ClientSize.Width - Margin * 2,
+                    mapHeight);
 
             pictureBoxDisplay.SendToBack();
             panelFocusMode.BringToFront();
