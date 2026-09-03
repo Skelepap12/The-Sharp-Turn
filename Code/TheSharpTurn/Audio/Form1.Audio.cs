@@ -56,7 +56,7 @@ namespace TheSharpTurn
                 Pedestrian pedestrian = (Pedestrian)manualObject;
 
                 if (pedestrian.Model == PedestrianModel.Female)
-                    PlayActionSound("pedestrian_female_shout.wav", 32);
+                    PlayActionSound("pedestrian_female_shout.wav", 85);
                 else
                     PlayActionSound("pedestrian_shout.wav", 15);
 
