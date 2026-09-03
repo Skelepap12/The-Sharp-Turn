@@ -50,7 +50,6 @@ namespace TheSharpTurn
             pictureBoxDisplay.TabStop = false;
             pictureBoxDisplay.Paint += new PaintEventHandler(
                 pictureBoxDisplay_Paint_MetroCity);
-            metroMapPaintInstalled = true;
             pictureBoxDisplay.MouseDown += new MouseEventHandler(pictureBoxDisplay_MouseDown);
             this.Controls.Add(pictureBoxDisplay);
 
