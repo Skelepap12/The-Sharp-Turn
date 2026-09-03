@@ -161,7 +161,13 @@ namespace TheSharpTurn
 
                     if (gap <= releaseDistance)
                     {
-                        MoveAtBestSpeed(roadUser, blocker.ActualSpeed);
+                        int approachSpeed = blocker.ActualSpeed;
+
+                        if (blockerIsSlower &&
+                            approachSpeed < roadUser.DesiredSpeed)
+                            approachSpeed++;
+
+                        MoveAtBestSpeed(roadUser, approachSpeed);
                         return;
                     }
                 }
