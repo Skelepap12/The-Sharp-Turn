@@ -247,7 +247,7 @@ namespace TheSharpTurn
 
             obj.Y = laneTop + (laneHeight - obj.Height) / 2;
 
-            if (!trafficObjects.IsAreaFree(obj.Bounds))
+            if (!IsMotionAreaFree(obj.Bounds, null))
             {
                 labelStatus.Text = "The entrance is blocked. Wait for the area to become free.";
                 return;

@@ -1,21 +1,88 @@
-THE SHARP TURN - VISUAL ASSET CREDITS
+THE SHARP TURN - ASSET CREDITS
 
-MinZinn - TopDown Vehicles v1.17
-License: Creative Commons Attribution 4.0 International (CC BY 4.0)
-Website: https://minzinn.itch.io/
-Used for: Sports Car, Sedan, Hatchback, Bus, Ambulance and Police Car source art.
-
-TMD Studios - Cars asset pack
-Permission in included README: free use in projects, with or without modifications; link requested.
-Website: https://tmdstudios.wordpress.com/
-Used for: SportsBike and Chopper source art.
+VISUAL ASSETS
 
 MetroCity / JIK-A-4
-License: CC0 on the MetroCity asset pages.
-Used for: FireTruck source art, pedestrian character parts and environment tree art.
+License: CC0 1.0 Universal.
+Sources:
+- https://jik-a-4.itch.io/metro
+- https://jik-a-4.itch.io/metrocity-free-top-down-cars-pack
+- https://jik-a-4.itch.io/metrocity-free-topdown-character-pack
+Used for: final MetroCityMap source art (roads, tiles, buildings, Police Station, Fire Station and trees), FireTruck source art and pedestrian character source art.
+The final MetroCityMap.png is a project-specific composition derived from these assets.
+
+MinZinn - Pixel Vehicles - Top Down Game Assets
+License: Creative Commons Attribution 4.0 International (CC BY 4.0).
+Source: https://minzinn.itch.io/pixelvehicles
+License text: https://creativecommons.org/licenses/by/4.0/
+Used for: SportsCar, Sedan, Hatchback, Bus, Ambulance and PoliceCar source art.
+Attribution: MinZinn.
+
+TMD Studios - Cars asset pack
+Permission in the included README permits use in projects, with or without modifications, and requests a link to the creator.
+Source: https://tmdstudios.wordpress.com/
+Used for: SportsBike and Chopper source art.
 
 Low Poly Bicycle Pack
-Included license: royalty-free use in personal and commercial games/renders; raw model files may not be resold or redistributed.
-Used for: derived rendered sprites for Cruiser, BMX and MountainBike. Raw 3D model files are not included in this repository.
+Permission in the included license permits royalty-free use in personal and commercial games/renders. Raw model files may not be resold or redistributed.
+Used for: derived rendered sprites for Cruiser, BMX and MountainBike.
+The repository contains only the derived runtime PNG sprites, not the raw 3D models.
 
-The project stores only the runtime-sized derived PNG sprites needed by the game.
+AUDIO ASSETS
+
+OpenGameArt - "racing car engine sound loops" by domasx2
+License: CC0.
+Source: https://opengameart.org/content/racing-car-engine-sound-loops
+Used for: car_idle.wav, car_low.wav, car_mid.wav and car_high.wav derived engine loops.
+
+Freesound - "busSnd_002.wav" by tec_studio
+License: CC0.
+Source: https://freesound.org/people/tec_studio/sounds/107273/
+Used for: bus_idle.wav, bus_low.wav, bus_mid.wav and bus_high.wav derived engine loops.
+
+Freesound - "motorcycle_20" by Lauri_Lehtonen
+License: CC0.
+Source: https://freesound.org/people/Lauri_Lehtonen/sounds/714062/
+Used for: motorcycle_idle.wav, motorcycle_low.wav, motorcycle_mid.wav and motorcycle_high.wav derived engine loops.
+
+Freesound - "Fire Truck - Idle" by Filmscore
+License: CC0.
+Source: https://freesound.org/people/Filmscore/sounds/268526/
+Used for: firetruck_idle.wav.
+
+OpenGameArt - "Car signal" by Yaroslav_Novikov
+License: CC0.
+Source: https://opengameart.org/content/car-signal
+Used for: car_horn.wav.
+
+Freesound - "police siren.wav" by vlammenos
+License: CC0.
+Source: https://freesound.org/people/vlammenos/sounds/52906/
+Used for: siren.wav.
+
+OpenGameArt - "Bicycle Horn" by AntumDeluge
+License: CC0.
+Source: https://opengameart.org/content/bicycle-horn
+Used for: bike_horn.wav.
+
+OpenGameArt - "Bicycle Sounds" by AntumDeluge
+License: CC0.
+Source: https://opengameart.org/content/bicycle-sounds
+Used for: bike_low.wav, bike_mid.wav and bike_high.wav derived movement loops.
+
+OpenGameArt - "Different steps on wood, stone, leaves, gravel and mud" by TinyWorlds
+License: CC0.
+Source: https://opengameart.org/content/different-steps-on-wood-stone-leaves-gravel-and-mud
+Used for: walk_normal.wav and walk_fast.wav derived walking loops.
+
+Freesound - "HEY VERY LOW 4.WAV" by metrostock99
+License: CC0.
+Source: https://freesound.org/people/metrostock99/sounds/345083/
+Used for: pedestrian_shout.wav.
+
+FX Sound Warehouse - "Female Voice Saying Hello - Sound Effect(HD)"
+Source supplied by the project author: https://www.youtube.com/watch?v=lBW4CCx9F5Q
+Used for: pedestrian_female_shout.wav.
+No explicit open-content license for this source is recorded in this repository; the project author chose to retain the supplied clip.
+
+Audio files may be trimmed, converted to PCM WAV, or split into simple speed tiers for runtime use. The program uses only System.Media.SoundPlayer for playback.

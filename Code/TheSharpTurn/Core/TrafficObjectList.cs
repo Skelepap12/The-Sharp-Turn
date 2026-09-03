@@ -81,61 +81,18 @@ namespace TheSharpTurn
 
         public bool IsAreaFree(Rectangle bounds, TrafficObject ignoredObject)
         {
-            TrafficObject current;
-
             for (int i = 0; i < Count; i++)
             {
-                current = this[i];
+                TrafficObject current = this[i];
 
                 if (current == ignoredObject)
                     continue;
 
                 if (current.Bounds.IntersectsWith(bounds))
                     return false;
-
-                Rectangle reservedBounds = GetLaneChangeReservedBounds(current);
-
-                if (!reservedBounds.IsEmpty &&
-                    reservedBounds.IntersectsWith(bounds))
-                    return false;
             }
 
             return true;
-        }
-
-        private Rectangle GetLaneChangeReservedBounds(TrafficObject obj)
-        {
-            int targetY = obj.Y;
-            bool isChangingLane = false;
-
-            if (obj is RoadUser)
-            {
-                RoadUser roadUser = (RoadUser)obj;
-                isChangingLane = roadUser.IsChangingLane;
-                targetY = roadUser.LaneChangeTargetY;
-            }
-            else if (obj is BikePathUser)
-            {
-                BikePathUser bikePathUser = (BikePathUser)obj;
-                isChangingLane = bikePathUser.IsChangingLane;
-                targetY = bikePathUser.LaneChangeTargetY;
-            }
-            else if (obj is SidewalkUser)
-            {
-                SidewalkUser sidewalkUser = (SidewalkUser)obj;
-                isChangingLane = sidewalkUser.IsChangingLane;
-                targetY = sidewalkUser.LaneChangeTargetY;
-            }
-
-            if (!isChangingLane)
-                return Rectangle.Empty;
-
-            int topY = Math.Min(obj.Y, targetY);
-            int bottomY = Math.Max(obj.Y + obj.Height,
-                targetY + obj.Height);
-
-            return new Rectangle(obj.X, topY, obj.Width,
-                bottomY - topY);
         }
 
         public int CountObjectsInLane(int lane)

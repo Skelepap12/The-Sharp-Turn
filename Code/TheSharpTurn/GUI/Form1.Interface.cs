@@ -28,21 +28,21 @@ namespace TheSharpTurn
             windowedBounds = this.Bounds;
             this.MinimumSize = new Size(800, 650);
 
-            CreatePhase8Controls();
-            ApplyPhase8Style();
+            CreateInterfaceControls();
+            ApplyInterfaceStyle();
 
-            this.Resize += new EventHandler(Form1_Resize_Phase8);
-            this.KeyDown += new KeyEventHandler(Form1_KeyDown_Phase8);
-            buttonManual.Click += new EventHandler(UpdatePhase8AfterAction);
-            buttonAdd.Click += new EventHandler(UpdatePhase8AfterAction);
-            buttonDelete.Click += new EventHandler(UpdatePhase8AfterAction);
-            buttonLoad.Click += new EventHandler(UpdatePhase8AfterAction);
-            simulationTimer.Tick += new EventHandler(simulationTimer_Tick_Phase8);
+            this.Resize += new EventHandler(Form1_Resize_Interface);
+            this.KeyDown += new KeyEventHandler(Form1_KeyDown_Interface);
+            buttonManual.Click += new EventHandler(UpdateInterfaceAfterAction);
+            buttonAdd.Click += new EventHandler(UpdateInterfaceAfterAction);
+            buttonDelete.Click += new EventHandler(UpdateInterfaceAfterAction);
+            buttonLoad.Click += new EventHandler(UpdateInterfaceAfterAction);
+            simulationTimer.Tick += new EventHandler(simulationTimer_Tick_Interface);
 
-            UpdatePhase8State();
+            UpdateInterfaceState();
         }
 
-        private void CreatePhase8Controls()
+        private void CreateInterfaceControls()
         {
             pictureBoxDisplay = new PictureBox();
             pictureBoxDisplay.Name = "pictureBoxDisplay";
@@ -59,11 +59,11 @@ namespace TheSharpTurn
             pictureBoxMap.Visible = false;
 
             Panel selectedDivider = new Panel();
-            selectedDivider.Name = "selectedDivider";
             selectedDivider.Location = new Point(16, 280);
             selectedDivider.Size = new Size(216, 1);
             selectedDivider.Anchor = AnchorStyles.Top |
                 AnchorStyles.Left | AnchorStyles.Right;
+            selectedDivider.BackColor = Color.FromArgb(78, 76, 68);
             panelControls.Controls.Add(selectedDivider);
 
             panelFocusMode = new Panel();
@@ -73,9 +73,9 @@ namespace TheSharpTurn
             panelFocusMode.Visible = false;
 
             Panel focusAccent = new Panel();
-            focusAccent.Name = "focusAccent";
             focusAccent.Dock = DockStyle.Top;
             focusAccent.Height = 2;
+            focusAccent.BackColor = Color.FromArgb(196, 157, 74);
 
             labelFocusModeTitle = new Label();
             labelFocusModeTitle.Location = new Point(14, 10);
@@ -95,7 +95,7 @@ namespace TheSharpTurn
             panelFocusMode.BringToFront();
         }
 
-        private void ApplyPhase8Style()
+        private void ApplyInterfaceStyle()
         {
             Color formBack = Color.FromArgb(22, 23, 22);
             Color panelBack = Color.FromArgb(31, 32, 31);
@@ -156,11 +156,6 @@ namespace TheSharpTurn
             buttonAdd.Text = "ADD OBJECT";
             StyleAccentButton(buttonAdd, gold, formBack);
 
-            Control[] dividerControls = panelControls.Controls.Find(
-                "selectedDivider", false);
-            if (dividerControls.Length > 0)
-                dividerControls[0].BackColor = Color.FromArgb(78, 76, 68);
-
             labelSelectedTitle.Text = "SELECTED";
             labelSelectedTitle.Location = new Point(16, 294);
             labelSelectedTitle.Font = new Font("Consolas", 10F,
@@ -197,11 +192,6 @@ namespace TheSharpTurn
 
             panelFocusMode.BackColor = panelBack;
             panelFocusMode.ForeColor = cream;
-
-            Control[] focusAccentControls = panelFocusMode.Controls.Find(
-                "focusAccent", false);
-            if (focusAccentControls.Length > 0)
-                focusAccentControls[0].BackColor = gold;
 
             labelFocusModeTitle.Font = new Font("Consolas", 10F,
                 FontStyle.Bold);
@@ -282,17 +272,17 @@ namespace TheSharpTurn
                 fullscreenActive = false;
             }
 
-            UpdatePhase8Layout();
+            UpdateInterfaceLayout();
             pictureBoxDisplay.Invalidate();
         }
 
-        private void Form1_Resize_Phase8(object sender, EventArgs e)
+        private void Form1_Resize_Interface(object sender, EventArgs e)
         {
-            UpdatePhase8Layout();
+            UpdateInterfaceLayout();
             pictureBoxDisplay.Invalidate();
         }
 
-        private void Form1_KeyDown_Phase8(object sender, KeyEventArgs e)
+        private void Form1_KeyDown_Interface(object sender, KeyEventArgs e)
         {
             if (e.KeyCode == Keys.F11)
             {
@@ -301,18 +291,18 @@ namespace TheSharpTurn
                 return;
             }
 
-            UpdatePhase8State();
+            UpdateInterfaceState();
         }
 
-        private void UpdatePhase8AfterAction(object sender, EventArgs e)
+        private void UpdateInterfaceAfterAction(object sender, EventArgs e)
         {
-            UpdatePhase8State();
+            UpdateInterfaceState();
             pictureBoxDisplay.Invalidate();
         }
 
-        private void simulationTimer_Tick_Phase8(object sender, EventArgs e)
+        private void simulationTimer_Tick_Interface(object sender, EventArgs e)
         {
-            UpdatePhase8State();
+            UpdateInterfaceState();
             pictureBoxDisplay.Invalidate();
         }
 
@@ -324,7 +314,7 @@ namespace TheSharpTurn
                 MouseEventArgs exitEvent = new MouseEventArgs(e.Button,
                     e.Clicks, 0, 0, e.Delta);
                 pictureBoxMap_MouseDown(pictureBoxMap, exitEvent);
-                UpdatePhase8State();
+                UpdateInterfaceState();
                 pictureBoxDisplay.Invalidate();
                 return;
             }
@@ -339,7 +329,7 @@ namespace TheSharpTurn
             MouseEventArgs logicalEvent = new MouseEventArgs(e.Button,
                 e.Clicks, logicalX, logicalY, e.Delta);
             pictureBoxMap_MouseDown(pictureBoxMap, logicalEvent);
-            UpdatePhase8State();
+            UpdateInterfaceState();
             pictureBoxDisplay.Invalidate();
         }
 
@@ -391,7 +381,7 @@ namespace TheSharpTurn
             return true;
         }
 
-        private void UpdatePhase8State()
+        private void UpdateInterfaceState()
         {
             bool shouldUseFocusMode = manualObject != null;
 
@@ -408,7 +398,7 @@ namespace TheSharpTurn
                 buttonManual.Text = "CONTROL SELECTED";
 
             RefreshSelectedInfoDisplay();
-            UpdatePhase8Layout();
+            UpdateInterfaceLayout();
         }
 
         private void SetNormalControlsVisible(bool visible)
@@ -489,7 +479,7 @@ namespace TheSharpTurn
             }
         }
 
-        private void UpdatePhase8Layout()
+        private void UpdateInterfaceLayout()
         {
             if (pictureBoxDisplay == null)
                 return;
