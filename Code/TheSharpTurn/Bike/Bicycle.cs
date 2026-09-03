@@ -61,6 +61,7 @@ namespace TheSharpTurn
             {
                 case BicycleModel.BMX:
                     spritePath = "Bicycles/BMX_Right.png";
+                    drawBounds = Bounds;
                     break;
 
                 case BicycleModel.MountainBike:
