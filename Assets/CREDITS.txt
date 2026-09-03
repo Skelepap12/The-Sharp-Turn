@@ -12,7 +12,7 @@ Used for: SportsBike and Chopper source art.
 
 MetroCity / JIK-A-4
 License: CC0 on the MetroCity asset pages.
-Used for: FireTruck source art and pedestrian character parts.
+Used for: FireTruck source art, pedestrian character parts and environment tree art.
 
 Low Poly Bicycle Pack
 Included license: royalty-free use in personal and commercial games/renders; raw model files may not be resold or redistributed.
