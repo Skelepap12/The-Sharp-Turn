@@ -37,10 +37,10 @@ namespace TheSharpTurn
         TravelDirection bicyclePriority;
         int bicycleConflictCenterX;
         ArrayList manualSpacingRecoveryObjects = new ArrayList();
-        ArrayList manualSpacingRecoveryTargets = new ArrayList();
 
         private void simulationTimer_Tick(object sender, EventArgs e)
         {
+            RemoveStaleManualSpacingRecoveries();
             UpdateBicycleConflictState();
 
             for (int i = trafficObjects.Count - 1; i >= 0; i--)
@@ -77,6 +77,7 @@ namespace TheSharpTurn
                     if (obj == manualObject)
                         EndManualMode("Manual Mode ended because the object left the map.");
 
+                    manualSpacingRecoveryObjects.Remove(obj);
                     trafficObjects.Remove(i);
 
                     if (curIndex == i)
@@ -97,11 +98,34 @@ namespace TheSharpTurn
             if (releasedObject == null)
                 return;
 
+            if (!(releasedObject is Bicycle) &&
+                !(releasedObject is Pedestrian))
+                return;
+
+            int targetX = GetManualSpacingRecoveryTargetX(releasedObject);
+            int recoveryIndex = manualSpacingRecoveryObjects.IndexOf(
+                releasedObject);
+
+            if (targetX == releasedObject.X)
+            {
+                if (recoveryIndex >= 0)
+                    manualSpacingRecoveryObjects.RemoveAt(recoveryIndex);
+
+                return;
+            }
+
+            if (recoveryIndex < 0)
+                manualSpacingRecoveryObjects.Add(releasedObject);
+        }
+
+        private int GetManualSpacingRecoveryTargetX(
+            TrafficObject releasedObject)
+        {
             bool releasedIsBicycle = releasedObject is Bicycle;
             bool releasedIsPedestrian = releasedObject is Pedestrian;
 
             if (!releasedIsBicycle && !releasedIsPedestrian)
-                return;
+                return releasedObject.X;
 
             int followingDistance;
             int headOnDistance;
@@ -167,28 +191,7 @@ namespace TheSharpTurn
                 }
             }
 
-            int recoveryIndex = manualSpacingRecoveryObjects.IndexOf(
-                releasedObject);
-
-            if (targetX == releasedObject.X)
-            {
-                if (recoveryIndex >= 0)
-                {
-                    manualSpacingRecoveryObjects.RemoveAt(recoveryIndex);
-                    manualSpacingRecoveryTargets.RemoveAt(recoveryIndex);
-                }
-
-                return;
-            }
-
-            if (recoveryIndex >= 0)
-            {
-                manualSpacingRecoveryTargets[recoveryIndex] = targetX;
-                return;
-            }
-
-            manualSpacingRecoveryObjects.Add(releasedObject);
-            manualSpacingRecoveryTargets.Add(targetX);
+            return targetX;
         }
 
         private bool UpdateManualSpacingRecovery(TrafficObject obj)
@@ -198,9 +201,15 @@ namespace TheSharpTurn
             if (recoveryIndex < 0)
                 return false;
 
-            int targetX = (int)manualSpacingRecoveryTargets[recoveryIndex];
-            int nextX = obj.X;
+            int targetX = GetManualSpacingRecoveryTargetX(obj);
 
+            if (targetX == obj.X)
+            {
+                manualSpacingRecoveryObjects.RemoveAt(recoveryIndex);
+                return false;
+            }
+
+            int nextX = obj.X;
             obj.ActualSpeed = 0;
 
             if (obj is Bicycle)
@@ -232,14 +241,30 @@ namespace TheSharpTurn
             }
 
             obj.X = nextX;
-
-            if (obj.X == targetX)
-            {
-                manualSpacingRecoveryObjects.RemoveAt(recoveryIndex);
-                manualSpacingRecoveryTargets.RemoveAt(recoveryIndex);
-            }
-
             return true;
+        }
+
+        private void RemoveStaleManualSpacingRecoveries()
+        {
+            for (int i = manualSpacingRecoveryObjects.Count - 1;
+                i >= 0; i--)
+            {
+                TrafficObject recoveryObject =
+                    (TrafficObject)manualSpacingRecoveryObjects[i];
+                bool found = false;
+
+                for (int j = 0; j < trafficObjects.Count; j++)
+                {
+                    if (trafficObjects[j] == recoveryObject)
+                    {
+                        found = true;
+                        break;
+                    }
+                }
+
+                if (!found)
+                    manualSpacingRecoveryObjects.RemoveAt(i);
+            }
         }
 
         private void UpdateRoadUser(RoadUser roadUser)
@@ -1499,14 +1524,14 @@ namespace TheSharpTurn
 
                 if (bicycle.Direction == TravelDirection.Right)
                 {
-                    int progress = center - conflictCenterX;
+                    int progress = center - bicycleConflictCenterX;
 
                     if (progress > rightProgress)
                         rightProgress = progress;
                 }
                 else
                 {
-                    int progress = conflictCenterX - center;
+                    int progress = bicycleConflictCenterX - center;
 
                     if (progress > leftProgress)
                         leftProgress = progress;
