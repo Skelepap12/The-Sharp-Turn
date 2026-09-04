@@ -320,10 +320,85 @@ namespace TheSharpTurn
 
         private void EndManualMode(string message)
         {
+            RestoreManualReleaseSpacing(manualObject);
             manualObject = (TrafficObject)null;
             buttonManual.Text = "Manually Control Selected Object";
             labelStatus.Text = message;
             UpdateSelectedInfo();
+        }
+
+        private void RestoreManualReleaseSpacing(TrafficObject releasedObject)
+        {
+            if (releasedObject == null)
+                return;
+
+            bool releasedIsBicycle = releasedObject is Bicycle;
+            bool releasedIsPedestrian = releasedObject is Pedestrian;
+
+            if (!releasedIsBicycle && !releasedIsPedestrian)
+                return;
+
+            int followingDistance;
+            int headOnDistance;
+
+            if (releasedIsBicycle)
+            {
+                followingDistance = BikeFollowingDistance;
+                headOnDistance = BikeHeadOnDistance;
+            }
+            else
+            {
+                followingDistance = PedestrianFollowingDistance;
+                headOnDistance = PedestrianHeadOnDistance;
+            }
+
+            for (int i = 0; i < trafficObjects.Count; i++)
+            {
+                TrafficObject current = trafficObjects[i];
+
+                if (current == releasedObject ||
+                    current.Lane != releasedObject.Lane)
+                    continue;
+
+                if (releasedIsBicycle && !(current is Bicycle))
+                    continue;
+
+                if (releasedIsPedestrian && !(current is Pedestrian))
+                    continue;
+
+                int minimumDistance;
+
+                if (current.Direction == releasedObject.Direction)
+                    minimumDistance = followingDistance;
+                else
+                    minimumDistance = headOnDistance;
+
+                if (releasedObject.X < current.X)
+                {
+                    int gap = current.X -
+                        (releasedObject.X + releasedObject.Width);
+
+                    if (gap < minimumDistance)
+                        releasedObject.X -= minimumDistance - gap;
+                }
+                else if (releasedObject.X > current.X)
+                {
+                    int gap = releasedObject.X -
+                        (current.X + current.Width);
+
+                    if (gap < minimumDistance)
+                        releasedObject.X += minimumDistance - gap;
+                }
+                else
+                {
+                    if (releasedObject.Direction == TravelDirection.Right)
+                        releasedObject.X = current.X -
+                            releasedObject.Width - minimumDistance;
+                    else
+                        releasedObject.X = current.X +
+                            current.Width + minimumDistance;
+                }
+            }
         }
 
         private void Form1_KeyDown(object sender, KeyEventArgs e)
