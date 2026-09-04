@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Drawing;
 
 namespace TheSharpTurn
@@ -30,10 +31,13 @@ namespace TheSharpTurn
         const int PedestrianHeadOnDistance = 30;
         const int PedestrianOvertakeSectionDistance = 160;
         const int PedestrianLaneChangePadding = 12;
+        const int ManualSpacingRecoveryStep = 2;
 
         bool bicycleConflictActive;
         TravelDirection bicyclePriority;
         int bicycleConflictCenterX;
+        ArrayList manualSpacingRecoveryObjects = new ArrayList();
+        ArrayList manualSpacingRecoveryTargets = new ArrayList();
 
         private void simulationTimer_Tick(object sender, EventArgs e)
         {
@@ -51,16 +55,19 @@ namespace TheSharpTurn
                     else
                         MoveAtBestSpeed(obj);
                 }
-                else if (obj is EmergencyVehicle)
-                    UpdateEmergencyVehicle((EmergencyVehicle)obj);
-                else if (obj is RoadUser)
-                    UpdateRoadUser((RoadUser)obj);
-                else if (obj is Bicycle)
-                    UpdateBicycle((Bicycle)obj);
-                else if (obj is Pedestrian)
-                    UpdatePedestrian((Pedestrian)obj);
-                else
-                    MoveAtBestSpeed(obj);
+                else if (!UpdateManualSpacingRecovery(obj))
+                {
+                    if (obj is EmergencyVehicle)
+                        UpdateEmergencyVehicle((EmergencyVehicle)obj);
+                    else if (obj is RoadUser)
+                        UpdateRoadUser((RoadUser)obj);
+                    else if (obj is Bicycle)
+                        UpdateBicycle((Bicycle)obj);
+                    else if (obj is Pedestrian)
+                        UpdatePedestrian((Pedestrian)obj);
+                    else
+                        MoveAtBestSpeed(obj);
+                }
 
                 if (obj is RoadUser)
                     UpdateRoadLaneChange((RoadUser)obj);
@@ -82,6 +89,157 @@ namespace TheSharpTurn
             UpdateSmoothMotion();
             UpdateSelectedInfo();
             pictureBoxMap.Invalidate();
+        }
+
+        private void BeginManualReleaseSpacingRecovery(
+            TrafficObject releasedObject)
+        {
+            if (releasedObject == null)
+                return;
+
+            bool releasedIsBicycle = releasedObject is Bicycle;
+            bool releasedIsPedestrian = releasedObject is Pedestrian;
+
+            if (!releasedIsBicycle && !releasedIsPedestrian)
+                return;
+
+            int followingDistance;
+            int headOnDistance;
+
+            if (releasedIsBicycle)
+            {
+                followingDistance = BikeFollowingDistance;
+                headOnDistance = BikeHeadOnDistance;
+            }
+            else
+            {
+                followingDistance = PedestrianFollowingDistance;
+                headOnDistance = PedestrianHeadOnDistance;
+            }
+
+            int targetX = releasedObject.X;
+
+            for (int i = 0; i < trafficObjects.Count; i++)
+            {
+                TrafficObject current = trafficObjects[i];
+
+                if (current == releasedObject ||
+                    current.Lane != releasedObject.Lane)
+                    continue;
+
+                if (releasedIsBicycle && !(current is Bicycle))
+                    continue;
+
+                if (releasedIsPedestrian && !(current is Pedestrian))
+                    continue;
+
+                int minimumDistance;
+
+                if (current.Direction == releasedObject.Direction)
+                    minimumDistance = followingDistance;
+                else
+                    minimumDistance = headOnDistance;
+
+                if (targetX < current.X)
+                {
+                    int gap = current.X -
+                        (targetX + releasedObject.Width);
+
+                    if (gap < minimumDistance)
+                        targetX -= minimumDistance - gap;
+                }
+                else if (targetX > current.X)
+                {
+                    int gap = targetX -
+                        (current.X + current.Width);
+
+                    if (gap < minimumDistance)
+                        targetX += minimumDistance - gap;
+                }
+                else
+                {
+                    if (releasedObject.Direction == TravelDirection.Right)
+                        targetX = current.X - releasedObject.Width -
+                            minimumDistance;
+                    else
+                        targetX = current.X + current.Width +
+                            minimumDistance;
+                }
+            }
+
+            int recoveryIndex = manualSpacingRecoveryObjects.IndexOf(
+                releasedObject);
+
+            if (targetX == releasedObject.X)
+            {
+                if (recoveryIndex >= 0)
+                {
+                    manualSpacingRecoveryObjects.RemoveAt(recoveryIndex);
+                    manualSpacingRecoveryTargets.RemoveAt(recoveryIndex);
+                }
+
+                return;
+            }
+
+            if (recoveryIndex >= 0)
+            {
+                manualSpacingRecoveryTargets[recoveryIndex] = targetX;
+                return;
+            }
+
+            manualSpacingRecoveryObjects.Add(releasedObject);
+            manualSpacingRecoveryTargets.Add(targetX);
+        }
+
+        private bool UpdateManualSpacingRecovery(TrafficObject obj)
+        {
+            int recoveryIndex = manualSpacingRecoveryObjects.IndexOf(obj);
+
+            if (recoveryIndex < 0)
+                return false;
+
+            int targetX = (int)manualSpacingRecoveryTargets[recoveryIndex];
+            int nextX = obj.X;
+
+            obj.ActualSpeed = 0;
+
+            if (obj is Bicycle)
+            {
+                Bicycle bicycle = (Bicycle)obj;
+                bicycle.MotionSpeed = 0;
+                bicycle.MotionBrakeTickCounter = 0;
+            }
+            else if (obj is Pedestrian)
+            {
+                Pedestrian pedestrian = (Pedestrian)obj;
+                pedestrian.MotionSpeed = 0;
+                pedestrian.MotionBrakeTickCounter = 0;
+            }
+
+            if (obj.X < targetX)
+            {
+                nextX += ManualSpacingRecoveryStep;
+
+                if (nextX > targetX)
+                    nextX = targetX;
+            }
+            else if (obj.X > targetX)
+            {
+                nextX -= ManualSpacingRecoveryStep;
+
+                if (nextX < targetX)
+                    nextX = targetX;
+            }
+
+            obj.X = nextX;
+
+            if (obj.X == targetX)
+            {
+                manualSpacingRecoveryObjects.RemoveAt(recoveryIndex);
+                manualSpacingRecoveryTargets.RemoveAt(recoveryIndex);
+            }
+
+            return true;
         }
 
         private void UpdateRoadUser(RoadUser roadUser)
