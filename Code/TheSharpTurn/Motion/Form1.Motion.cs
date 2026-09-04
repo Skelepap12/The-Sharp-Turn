@@ -1524,14 +1524,14 @@ namespace TheSharpTurn
 
                 if (bicycle.Direction == TravelDirection.Right)
                 {
-                    int progress = center - bicycleConflictCenterX;
+                    int progress = center - conflictCenterX;
 
                     if (progress > rightProgress)
                         rightProgress = progress;
                 }
                 else
                 {
-                    int progress = bicycleConflictCenterX - center;
+                    int progress = conflictCenterX - center;
 
                     if (progress > leftProgress)
                         leftProgress = progress;
